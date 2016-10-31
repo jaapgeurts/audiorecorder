@@ -26,7 +26,7 @@ struct node
     void*        elem;
 };
 
-struct JGList JGList
+struct JGList
 {
     struct node* first;
     struct node* last;
@@ -81,7 +81,7 @@ void JGListDestroy(JGList* list, void (* free_fn)(void*))
         free(cursor);
         cursor = tmp;
     }
-    list->count = NULL;
+    list->count = 0;
     list->first = NULL;
     list->last  = NULL;
     free(list);
@@ -135,7 +135,6 @@ void JGListPush(JGList* list, void* elem)
  */
 void* JGListPop(JGList* list)
 {
-    struct node* node;
     void*        elem = NULL;
 
     if (list->last == NULL)
@@ -165,11 +164,12 @@ void* JGListPop(JGList* list)
         }
         cursor = cursor->next;
     }
-    elem = cursor->next->data;
+    elem = cursor->next->elem;
     free(cursor->next);
     list->last   = cursor;
     cursor->next = NULL;
     list->count--;
+    return elem;
 }
 
 /*
@@ -186,4 +186,5 @@ void JGListAdd (JGList* list, void* elem, int idx)
 void* JGListRemove(JGList* list, int idx )
 {
     fprintf(stderr, "Not yet implemented!\n");
+    return NULL;
 }

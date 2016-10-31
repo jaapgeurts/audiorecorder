@@ -14,21 +14,21 @@
    This is a standard push button.
  */
 
-#include "widget.h"
 #include "button.h"
 
 struct GGButton
 {
     GGWidget widget;
 
-    const char* label;
+    char* label;
 };
 
 GGButton* GGButtonCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height)
 {
     GGButton* btn = (GGButton*)malloc(sizeof(GGButton));
-    GGWidgetInit(left,top,width,height);
+    GGWidgetInit(&btn->widget,left,top,width,height);
     btn->label = strdup(label);
+    return btn;
 }
 
 void GGButtonDestroy(GGButton* button)

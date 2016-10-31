@@ -24,7 +24,7 @@
 
 struct JGArrayList
 {
-    void* elems[];
+    void** elems;
     int size;
     int   count;
 };
@@ -122,7 +122,6 @@ void JGArrayListAdd (JGArrayList* list, void* elem, int idx)
 void* JGArrayListRemove(JGArrayList* list, int idx )
 {
     fprintf(stderr,"Not yet implemented\n");
+    return NULL;
 }
 
-
-#endif

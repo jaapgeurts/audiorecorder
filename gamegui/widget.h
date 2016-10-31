@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "gamegui.h"
+
 typedef struct
 {
     int left;
@@ -15,9 +17,9 @@ typedef struct
     bool has_focus;
     bool is_dirty;
     
-    void (*)(
+    void (*render_func)(SDL_Renderer* renderer);
 } GGWidget;
 
-void GGWidgetInit(int left, int top, int width, int height);
+void GGWidgetInit(GGWidget* widget, int left, int top, int width, int height);
 
 #endif // WIDGET_H_INCLUDED

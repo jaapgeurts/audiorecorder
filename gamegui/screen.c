@@ -18,7 +18,7 @@
  Multiple screens/windows monitors are not supported
 
 */
-#include "arraylist.h"
+#include "../containerlib/arraylist.h"
 
 #include "gamegui.h"
 #include "screen.h"
@@ -30,7 +30,7 @@ struct GGScreen
     SDL_Renderer* renderer;
     SDL_Color bg_color;
 
-    GGWidget* widgets;
+    JGArrayList* widgets;
 };
 
 /*
