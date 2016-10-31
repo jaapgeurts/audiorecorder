@@ -18,8 +18,7 @@
  Multiple screens/windows monitors are not supported
 
 */
-
-#include <glib.h>
+#include "arraylist.h"
 
 #include "gamegui.h"
 #include "screen.h"
@@ -31,6 +30,7 @@ struct GGScreen
     SDL_Renderer* renderer;
     SDL_Color bg_color;
 
+    GGWidget* widgets;
 };
 
 /*
@@ -74,6 +74,9 @@ void GGScreenDestroy(GGScreen* screen)
 
 void GGScreenRender(GGScreen* screen)
 {
+    // render all widgets
+    
+    
     SDL_RenderPresent(screen->renderer);
 }
 

@@ -14,6 +14,8 @@ typedef struct
 
     bool has_focus;
     bool is_dirty;
+    
+    void (*)(
 } GGWidget;
 
 void GGWidgetInit(int left, int top, int width, int height);

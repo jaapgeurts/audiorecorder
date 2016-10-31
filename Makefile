@@ -1,6 +1,6 @@
 TARGET := audiorecorder
 MIPSTARGET := mips/audiorecorder
-CSRCS := $(wildcard *.c) $(wildcard gamegui/*.c)
+CSRCS := $(wildcard *.c) $(wildcard gamegui/*.c) $(wildcard containerlib/*.c)
 CPPSRCS := $(wildcard *.cpp) 
 HDRS := $(wildcard *.h)
 OBJS := $(CSRCS:.c=.o) $(CPPSRCS:.cpp=.o)
