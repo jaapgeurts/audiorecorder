@@ -25,8 +25,8 @@
 struct JGArrayList
 {
     void** elems;
-    int size;
-    int   count;
+    int    size;
+    int    count;
 };
 
 /*
@@ -35,18 +35,21 @@ struct JGArrayList
 JGArrayList* JGArrayListCreate(int initial_size)
 {
     JGArrayList* arraylist = (JGArrayList*)calloc(initial_size, sizeof(struct JGArrayList));
-    
-    if (arraylist == NULL) {
+
+    if (arraylist == NULL)
+    {
         fprintf(stderr, "Out of Memory when allocating arraylist\n");
         return NULL;
     }
-    
-    arraylist->elems = (void**)malloc(sizeof(void*)*initial_size);
-    if (arraylist->elems == NULL) {
+
+    arraylist->elems = (void**)malloc(sizeof(void*) * initial_size);
+
+    if (arraylist->elems == NULL)
+    {
         fprintf(stderr, "Out of Memory when allocating arraylist\n");
         return NULL;
     }
-    
+
     arraylist->size = initial_size;
     return arraylist;
 }
@@ -77,17 +80,34 @@ int JGArrayListCount(JGArrayList* list)
 }
 
 /*
+ * gets the element at position idx
+ */
+void* JGArrayListGet(JGArrayList* list, unsigned int idx)
+{
+    if (idx >= list->count)
+    {
+        fprintf(stderr, "Index out of bounds: %d\n", idx);
+        return NULL;
+    }
+    return list->elems[idx];
+}
+
+/*
  * Adds an element to the end
  */
 void JGArrayListPush(JGArrayList* list, void* elem)
 {
     if (list->count == list->size)
     {
-        void* newelems = (void**)realloc(list->elems,list->size + INCREMENT_SIZE);
-        if (newelems == NULL ) {
-            fprintf(stderr,"Out of Memory error when enlarging list\n");
+        void* newelems = (void**)realloc(list->elems, list->size + INCREMENT_SIZE);
+
+        if (newelems == NULL)
+        {
+            fprintf(stderr, "Out of Memory error when enlarging list\n");
             return;
-        }else {
+        }
+        else
+        {
             list->elems = newelems;
         }
     }
@@ -101,9 +121,10 @@ void JGArrayListPush(JGArrayList* list, void* elem)
 void* JGArrayListPop(JGArrayList* list)
 {
     list->count--;
+
     if (list->count == 0)
     {
-        fprintf(stderr,"Attempt to pop element from empty list\n");
+        fprintf(stderr, "Attempt to pop element from empty list\n");
         return NULL;
     }
     return list->elems[list->count];
@@ -112,16 +133,16 @@ void* JGArrayListPop(JGArrayList* list)
 /*
  * Adds element elem to the list at  position idx
  */
-void JGArrayListAdd (JGArrayList* list, void* elem, int idx)
+void JGArrayListAdd (JGArrayList* list, void* elem, unsigned int idx)
 {
-    fprintf(stderr,"Not yet implemented\n");
+    fprintf(stderr, "Not yet implemented\n");
 }
+
 /*
  * Removes and element from the list at position idx
  */
-void* JGArrayListRemove(JGArrayList* list, int idx )
+void* JGArrayListRemove(JGArrayList* list, unsigned int idx )
 {
-    fprintf(stderr,"Not yet implemented\n");
+    fprintf(stderr, "Not yet implemented\n");
     return NULL;
 }
-

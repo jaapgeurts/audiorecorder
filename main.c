@@ -12,20 +12,28 @@
 #define FULLSCREEN    false
 #endif
 
+void render_bg(SDL_Renderer* renderer)
+{
+    printf("Rendering background\n");
+    SDL_SetRenderDrawColor(renderer, 0xd6, 0xd2, 0xd0, 0xff);
+    SDL_RenderClear(renderer);
+}
+
 int main(int argc, char** argv)
 {
     GGScreen* screen;
 
     screen = GGScreenCreate("Audio Recorder", WINDOW_WIDTH, WINDOW_HEIGHT, FULLSCREEN);
-	
-	GGButton* button = GGButtonCreate(screen, "Exit", 10, 10, 100,30);
+
+    GGScreenSetBackgroundRenderFunc(screen, render_bg);
+
+    GGButton* button = GGButtonCreate(screen, "Exit", 10, 10, 100, 30);
 
     // playsound();
 
-    recordsound();
+    //recordsound();
 
     printf("recording done!\n");
-
 
     GGStart(screen);
 

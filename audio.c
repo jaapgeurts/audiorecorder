@@ -220,16 +220,16 @@ void recordsound()
     snd_pcm_uframes_t frames = 1024;
     buf = malloc(sizeof(short) * frames * 2);
 
-	SF_INFO info = { 
-		.frames = frames * 500 * 2 , // two channels
-		.samplerate = 44100,
-		.channels = 2,
-		.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE,
-		.sections = 0,
-		.seekable = 0
-	};
-	
-    SNDFILE * fp = sf_open("rec.wav",SFM_WRITE,&info);
+    SF_INFO  info = {
+        .frames     = frames * 500 * 2, // two channels
+        .samplerate = 44100,
+        .channels   = 2,
+        .format     = SF_FORMAT_WAV | SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE,
+        .sections   = 0,
+        .seekable   = 0
+    };
+
+    SNDFILE* fp = sf_open("rec.wav", SFM_WRITE, &info);
 
     for (i = 0; i < 500; ++i)
     {
@@ -239,7 +239,7 @@ void recordsound()
                 snd_strerror (err));
             exit (1);
         }
-        sf_write_short(fp,buf,frames*2);
+        sf_write_short(fp, buf, frames * 2);
     }
 
     sf_close(fp);

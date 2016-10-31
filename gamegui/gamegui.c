@@ -78,22 +78,23 @@ int GGStart(GGScreen* screen)
 
         while (SDL_PollEvent(&event))
         {
-            // check for messages
-            switch (event.type)
+            // deliver the event to object that has focus
+            if (!GGScreenHandleEvent(screen, &event))
             {
-                // exit if the window is closed
-                case SDL_QUIT:
-                    done = true;
-                    break;
-            } // end switch
-
+                // check for messages
+                switch (event.type)
+                {
+                    // exit if the window is closed
+                    case SDL_QUIT:
+                        done = true;
+                        break;
+                } // end switch
+            }
             // dispatch events
         } // end of message processing
 
-        // clear the screen
-        GGScreenClear(screen);
-
         // render all
+        GGScreenRender(screen);
 
         ticks = SDL_GetTicks() - ticks;
 
@@ -101,8 +102,6 @@ int GGStart(GGScreen* screen)
         {
             SDL_Delay(1000 / FRAMERATE - ticks);
         }
-
-        GGScreenRender(screen);
     } // end main loop
 
     return 0;

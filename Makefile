@@ -16,7 +16,7 @@ CFLAGS := -Wall -std=gnu99
 CPPFLAGS := -Wall -std=c++11 
 DEBUGFLAGS := -O0 -DDEBUG -ggdb
 RELEASEFLAGS := -O2 -DRELEASE 
-LDFLAGS := -lm -lasound -lsndfile
+LDFLAGS := -lm -lSDL2_ttf -lasound -lsndfile
 
 SYSROOT := $(shell $(CC) --print-sysroot)
 GCWSYSROOT := $(shell $(MIPSCC) --print-sysroot)

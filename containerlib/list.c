@@ -135,7 +135,7 @@ void JGListPush(JGList* list, void* elem)
  */
 void* JGListPop(JGList* list)
 {
-    void*        elem = NULL;
+    void* elem = NULL;
 
     if (list->last == NULL)
     {

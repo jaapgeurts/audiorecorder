@@ -16,5 +16,4 @@ const char* GGLastError();
 void GGSetLastError(char* fmt, ...);
 int GGStart(GGScreen* screen);
 
-
 #endif // GAMEGUI_H_INCLUDED
