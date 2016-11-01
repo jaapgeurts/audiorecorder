@@ -209,6 +209,22 @@ void GGScreenDestroy(GGScreen* screen)
     GGCleanUp(screen);
 }
 
+int GGScreenGetHeight(GGScreen* screen)
+{
+    int h,t;
+    SDL_GetWindowSize(screen->window,&t,&h);
+    return h;
+}
+
+int GGScreenGetWidth(GGScreen* screen)
+{
+    int w,t;
+    SDL_GetWindowSize(screen->window,&w,&t);
+    return w;
+    
+}
+
+
 void GGScreenRender(GGScreen* screen)
 {
     // render all widgets

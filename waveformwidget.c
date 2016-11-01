@@ -3,12 +3,12 @@
 
 #include "waveformwidget.h"
 
-GGWaveformWidget* GGWaveformWidgetCreate(GGScreen* screen, int left, int top,  int width, int height)
+GGWaveform* GGWaveformCreate(GGScreen* screen, int left, int top,  int width, int height)
 {
-    GGWaveformWidget* wfw = (GGWaveformWidget*)calloc(1, sizeof(GGWaveformWidget));
+    GGWaveform* wfw = (GGWaveform*)calloc(1, sizeof(GGWaveform));
 
     GGWidgetInit(&wfw->widget, left, top, width, height);
-    wfw->widget.render_func   = GGWaveformWidgetRender;
+    wfw->widget.render_func   = GGWaveformRender;
     wfw->screen               = screen;
     wfw->widget.accepts_focus = false;
 
@@ -33,17 +33,18 @@ GGWaveformWidget* GGWaveformWidgetCreate(GGScreen* screen, int left, int top,  i
     return wfw;
 }
 
-void GGWaveformWidgetDestroy(GGWaveformWidget* waveformwidget)
+void GGWaveformDestroy(GGWaveform* waveform)
 {
-    free(waveformwidget);
+    free(waveform->samples);
+    free(waveform);
 }
 
-void GGWaveformWidgetRender(GGWidget* widget, SDL_Renderer* renderer)
+void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 {
-    GGWaveformWidget* wfw = (GGWaveformWidget*)widget;
+    GGWaveform* wfw = (GGWaveform*)widget;
 
-    SDL_Color         c    = { 0x00, 0xff, 0x00, 0xff };
-    SDL_Color         gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
+    SDL_Color   c    = { 0x00, 0xff, 0x00, 0xff };
+    SDL_Color   gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
 
     SDL_SetRenderDrawColor(renderer, gray.r, gray.g, gray.b, gray.a);
     SDL_Rect rect = {
@@ -67,11 +68,11 @@ void GGWaveformWidgetRender(GGWidget* widget, SDL_Renderer* renderer)
     }
 }
 
-void GGWaveformWidgetSetData(GGWidget* widget, int16_t* data, uint32_t count)
+void GGWaveformSetData(GGWidget* widget, int16_t* data, uint32_t count)
 {
-    GGWaveformWidget* wfw        = (GGWaveformWidget*)widget;
-    int               numsamples = widget->width - 2; // -2 for a 1 pixel line at the borders
-    int               step;
+    GGWaveform* wfw        = (GGWaveform*)widget;
+    int         numsamples = widget->width - 2;       // -2 for a 1 pixel line at the borders
+    int         step;
 
     if (count < numsamples)
         step = 1;

@@ -14,7 +14,7 @@
 #define FULLSCREEN    false
 #endif
 
-GGWaveformWidget* wfw;
+GGWaveform* wfw;
 
 void render_bg(SDL_Renderer* renderer)
 {
@@ -39,7 +39,7 @@ bool on_record_click(GGWidget* widget, SDL_Event* event)
 
     printf("Recording done\n");
     
-    GGWaveformWidgetSetData(wfw,data, 1024*500);
+    GGWaveformSetData(wfw,data, 1024*500);
 
     return true;
 }
@@ -58,23 +58,22 @@ int main(int argc, char** argv)
 
     GGScreenSetBackgroundRenderFunc(screen, render_bg);
 
-    GGButton* button1 = GGButtonCreate(screen, "Exit", 10, 10, 100, 30);
+    GGButton* button1 = GGButtonCreate(screen, "Exit", 10, 10, 70, 30);
     GGButtonSetOnClickFunc(button1, on_exit_click);
 
-    GGButton* button2 = GGButtonCreate(screen, "Record", 120, 10, 100, 30);
+    GGButton* button2 = GGButtonCreate(screen, "Record", 90, 10, 70, 30);
     GGButtonSetOnClickFunc(button2, on_record_click);
 
-    GGButton*         button3 = GGButtonCreate(screen, "Play", 230, 10, 100, 30);
-    GGButton*         button4 = GGButtonCreate(screen, "Back", 10, 50, 100, 30);
+    GGButton*         button3 = GGButtonCreate(screen, "Play",170, 10, 70, 30);
 
-    GGImageButton*    imgbtn1 = GGImageButtonCreate(screen, "assets/mic.png", 30, 100, 30, 30);
-    GGImageButton*    imgbtn2 = GGImageButtonCreate(screen, "assets/record.png", 70, 100, 30, 30);
-    GGImageButton*    imgbtn3 = GGImageButtonCreate(screen, "assets/play.png", 110, 100, 30, 30);
-    GGImageButton*    imgbtn4 = GGImageButtonCreate(screen, "assets/dpad.png", 150, 100, 30, 30);
-    GGImageButton*    imgbtn5 = GGImageButtonCreate(screen, "assets/replay.png", 190, 100, 30, 30);
-    GGImageButton*    imgbtn6 = GGImageButtonCreate(screen, "assets/stop.png", 230, 100, 30, 30);
+    GGImageButton*    imgbtn1 = GGImageButtonCreate(screen, "assets/mic.png", 30, 50, 30, 30);
+    GGImageButton*    imgbtn2 = GGImageButtonCreate(screen, "assets/record.png", 70, 50, 30, 30);
+    GGImageButton*    imgbtn3 = GGImageButtonCreate(screen, "assets/play.png", 110, 50, 30, 30);
+    GGImageButton*    imgbtn4 = GGImageButtonCreate(screen, "assets/dpad.png", 150, 50, 30, 30);
+    GGImageButton*    imgbtn5 = GGImageButtonCreate(screen, "assets/replay.png", 190, 50, 30, 30);
+    GGImageButton*    imgbtn6 = GGImageButtonCreate(screen, "assets/stop.png", 230, 50, 30, 30);
 
-    wfw = GGWaveformWidgetCreate(screen, 10, 140, 300, 50);
+    wfw = GGWaveformCreate(screen, 10, 90, 300, 50);
 
     // playsound();
 

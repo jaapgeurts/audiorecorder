@@ -11,14 +11,14 @@ typedef struct {
     
     int16_t* samples;
     
-} GGWaveformWidget;
+} GGWaveform;
 
-GGWaveformWidget* GGWaveformWidgetCreate(GGScreen* screen, int left, int top,  int width, int height);
-void GGWaveformWidgetDestroy(GGWaveformWidget* waveformwidget);
+GGWaveform* GGWaveformCreate(GGScreen* screen, int left, int top,  int width, int height);
+void GGWaveformDestroy(GGWaveform* waveform);
 
-void GGWaveformWidgetRender(GGWidget* widget, SDL_Renderer* renderer);
+void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer);
 
-void GGWaveformWidgetSetData(GGWidget* widget, int16_t* data, uint32_t count);
+void GGWaveformSetData(GGWidget* widget, int16_t* data, uint32_t count);
 
 
 #endif // WAVEFORMWIDGET_H_INCLUDED
