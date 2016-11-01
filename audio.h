@@ -3,6 +3,6 @@
 
 void playsound();
 
-void recordsound();
+int16_t* recordsound();
 
 #endif

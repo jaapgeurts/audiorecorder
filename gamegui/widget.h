@@ -19,6 +19,7 @@ struct GGWidget
     int height;
 
     bool has_focus;
+    bool accepts_focus;
 
     void (* render_func)(GGWidget* widget, SDL_Renderer* renderer);
     GGEventFunc handle_event_func;

@@ -61,7 +61,6 @@ static void GGCleanUp(GGScreen* screen)
             SDL_DestroyWindow(screen->window);
         free(screen);
     }
-    
 }
 
 static void GGInternalScreenClear(SDL_Renderer* renderer)
@@ -101,6 +100,9 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
 
         // exclude ourselves
         if (cursor == current)
+            continue;
+        
+        if (!cursor->accepts_focus)
             continue;
 
         // only look at controls in the correct direction
@@ -198,7 +200,7 @@ GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscre
     }
 
     screen->render_background_func = GGInternalScreenClear;
-    
+
     return screen;
 }
 
@@ -213,13 +215,15 @@ void GGScreenRender(GGScreen* screen)
     int i;
     int count = JGArrayListCount(screen->widgets);
 
-   // printf("Draw background\n");
+    // printf("Draw background\n");
     // clear the screen first
     screen->render_background_func(screen->renderer);
 
     for (i = 0; i < count; i++)
     {
         GGWidget* widget = JGArrayListGet(screen->widgets, i);
+
+        SDL_Rect rect = {widget->left, widget->top, widget->width, widget->height};
 
         widget->render_func(widget, screen->renderer);
     }
@@ -293,5 +297,9 @@ bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
         GGWidgetSetFocus(focus_widget, true);
     }
 
+    if (focus_widget->handle_event_func == NULL)
+        return false;
+    
     return focus_widget->handle_event_func(focus_widget, event);
+    
 }

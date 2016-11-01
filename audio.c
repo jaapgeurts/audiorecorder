@@ -94,6 +94,7 @@ void playsound()
 
     buf = (short*)malloc(sizeof(short) * frames * 2);
 
+
     snd_pcm_hw_params_free (hw_params);
 
     if ((err = snd_pcm_prepare (playback_handle)) < 0)
@@ -141,11 +142,13 @@ void playsound()
     snd_pcm_close (playback_handle);
 }
 
-void recordsound()
+int16_t* recordsound()
 {
     int                  i;
     int                  err;
     short*               buf;
+    int16_t* result;
+    
     snd_pcm_t*           capture_handle;
     snd_pcm_hw_params_t* hw_params;
 
@@ -218,8 +221,10 @@ void recordsound()
     }
 
     snd_pcm_uframes_t frames = 1024;
-    buf = malloc(sizeof(short) * frames * 2);
-
+    int buf_size = sizeof(short) * frames * 2;
+    buf = malloc(buf_size);
+    result = (int16_t*)malloc(sizeof(int16_t)*frames*500);
+    
     SF_INFO  info = {
         .frames     = frames * 500 * 2, // two channels
         .samplerate = 44100,
@@ -240,9 +245,14 @@ void recordsound()
             exit (1);
         }
         sf_write_short(fp, buf, frames * 2);
+        for(int j=0;j<buf_size/2;j++)
+        {
+            result[i*frames+j] = buf[j*2];
+        }
     }
 
     sf_close(fp);
 
     snd_pcm_close (capture_handle);
+    return result;
 }

@@ -48,10 +48,10 @@ bool GGInit(int* argc, char*** argv)
         return false;
     }
     
-    if (IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG != IMG_INIT_PNG)
+    if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) != IMG_INIT_PNG)
     {
         TTF_Quit();
-        SQL_Quit();
+        SDL_Quit();
         GGSetLastError("%s", SDL_GetError());
         return false;
     }
