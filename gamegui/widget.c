@@ -22,7 +22,6 @@ void GGWidgetInit(GGWidget* widget, int left, int top,  int width, int height)
     widget->width       = width;
     widget->height      = height;
     widget->has_focus   = false;
-    widget->is_dirty    = true; // initially all widget must be rendered
     widget->render_func = NULL;
 }
 
@@ -31,6 +30,5 @@ void GGWidgetSetFocus(GGWidget* widget, bool has_focus)
     if (widget->has_focus != has_focus)
     {
         widget->has_focus = has_focus;
-        widget->is_dirty  = true;
     }
 }

@@ -24,7 +24,7 @@
 #include <stdarg.h>
 #include "gamegui.h"
 
-#define FRAMERATE   5
+#define FRAMERATE   15
 #define ERR_BUF_LEN 255
 
 static char lasterror[ERR_BUF_LEN] = {0};
@@ -97,6 +97,8 @@ int GGStart(GGScreen* screen)
         GGScreenRender(screen);
 
         ticks = SDL_GetTicks() - ticks;
+        
+        printf("Rendering & Event processing took %d milliseconds.\n",ticks);
 
         if (ticks < 1000 / FRAMERATE)
         {

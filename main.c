@@ -15,7 +15,7 @@
 void render_bg(SDL_Renderer* renderer)
 {
     printf("Rendering background\n");
-    SDL_SetRenderDrawColor(renderer, 0xd6, 0xd2, 0xd0, 0xff);
+    SDL_SetRenderDrawColor(renderer, 0x2f, 0x2f, 0x2f, 0xff);
     SDL_RenderClear(renderer);
 }
 
@@ -27,8 +27,11 @@ int main(int argc, char** argv)
 
     GGScreenSetBackgroundRenderFunc(screen, render_bg);
 
-    GGButton* button = GGButtonCreate(screen, "Exit", 10, 10, 100, 30);
-
+    GGButton* button1 = GGButtonCreate(screen, "Exit", 10, 10, 100, 30);
+    GGButton* button2 = GGButtonCreate(screen, "Record", 120, 10, 100, 30);
+    GGButton* button3 = GGButtonCreate(screen, "Play", 230, 10, 100, 30);
+    GGButton* button4 = GGButtonCreate(screen, "Back", 10, 50, 100, 30);
+    
     // playsound();
 
     //recordsound();

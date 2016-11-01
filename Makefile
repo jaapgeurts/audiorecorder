@@ -12,10 +12,10 @@ RANLIB := ranlib
 MIPSCC := mipsel-linux-gcc
 MIPSCPP := mipsel-linux-g++
 
-CFLAGS := -Wall -std=gnu99 
-CPPFLAGS := -Wall -std=c++11 
 DEBUGFLAGS := -O0 -DDEBUG -ggdb
 RELEASEFLAGS := -O2 -DRELEASE 
+CFLAGS := -Wall -std=gnu99  $(DEBUGFLAGS)
+CPPFLAGS := -Wall -std=c++11 
 LDFLAGS := -lm -lSDL2_ttf -lasound -lsndfile
 
 SYSROOT := $(shell $(CC) --print-sysroot)

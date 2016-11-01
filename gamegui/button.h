@@ -6,7 +6,7 @@
 
 typedef struct GGButton GGButton;
 
-GGButton* GGButtonCreate(GGScreen* screen, const char* label, int top, int left, int width, int height);
+GGButton* GGButtonCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height);
 void GGButtonDestroy(GGButton* button);
 
 void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer);

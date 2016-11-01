@@ -35,8 +35,6 @@ struct GGScreen
     SDL_Window*   window;
     SDL_Renderer* renderer;
 
-    bool is_dirty; // if the background needs to be redrawn
-
     JGArrayList* widgets; // all widgets on this screen
     GGWidget*    focus_widget; // the widget with active focus
 
@@ -95,12 +93,26 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
     x = midpoint_x(current);
     y = midpoint_y(current);
 
+    printf("Start focus finding\n");
+
     for (i = 0; i < count; i++)
     {
         GGWidget* cursor = JGArrayListGet(screen->widgets, i);
 
+        // exclude ourselves
+        if (cursor == current)
+            continue;
+
+        // only look at controls in the correct direction
+        if ((dir == DIR_UP && midpoint_y(cursor) > y) ||
+            (dir == DIR_DOWN && midpoint_y(cursor) < y) ||
+            (dir == DIR_LEFT && midpoint_x(cursor) > x) ||
+            (dir == DIR_RIGHT && midpoint_x(cursor) < x))
+            continue;
+
         if (dir == DIR_UP || dir == DIR_DOWN)
         {
+            // is the cursor widget in line with the midpoint of the current widget
             if (cursor->left < x && cursor->left + cursor->width > x)
             {
                 // we found a candidate. Make sure it closest to the current
@@ -110,13 +122,14 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
                 }
                 else
                 {
-                    if (midpoint_y(cursor) - y < midpoint_y(candidate) - y)
+                    if (abs(midpoint_y(cursor) - y) <  abs(midpoint_y(candidate) - y))
                         candidate = cursor;
                 }
             }
         }
         else
         {
+            // is the cursor widget in line with the midpoint of the current widget
             if (cursor->top < y && cursor->top + cursor->height > y)
             {
                 // we found a candidate. Make sure it closest to the current
@@ -126,12 +139,15 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
                 }
                 else
                 {
-                    if (midpoint_x(cursor) - x < midpoint_x(candidate) - x)
+                    if (abs(midpoint_x(cursor) - x) < abs(midpoint_x(candidate) - x))
                         candidate = cursor;
                 }
             }
         }
     }
+
+    if (candidate)
+        printf("Focus found:\n");
     return candidate;
 }
 
@@ -180,7 +196,7 @@ GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscre
         GGSetLastError("%s", SDL_GetError());
     }
 
-    screen->system_font = TTF_OpenFont("DroidSans.ttf", 11);
+    screen->system_font = TTF_OpenFont("assets/DroidSans.ttf", 11);
 
     if (!screen->system_font)
     {
@@ -189,7 +205,6 @@ GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscre
     }
 
     screen->render_background_func = GGInternalScreenClear;
-    screen->is_dirty               = true;
 
     return screen;
 }
@@ -202,36 +217,21 @@ void GGScreenDestroy(GGScreen* screen)
 void GGScreenRender(GGScreen* screen)
 {
     // render all widgets
-    int  i;
-    int  count = JGArrayListCount(screen->widgets);
+    int i;
+    int count = JGArrayListCount(screen->widgets);
 
-    bool must_output_screen = false;
-
-    if (screen->is_dirty)
-    {
-        printf("Draw background\n");
-        must_output_screen = true;
-        // clear the screen first
-        screen->render_background_func(screen->renderer);
-        screen->is_dirty = false;
-    }
+    printf("Draw background\n");
+    // clear the screen first
+    screen->render_background_func(screen->renderer);
 
     for (i = 0; i < count; i++)
     {
         GGWidget* widget = JGArrayListGet(screen->widgets, i);
 
-        if (widget->is_dirty)
-        {
-            if (!must_output_screen)
-                must_output_screen = true;
-            printf("Rendering item: %d\n", i);
-            widget->render_func(widget, screen->renderer);
-            widget->is_dirty = false;
-        }
+        widget->render_func(widget, screen->renderer);
     }
 
-    if (must_output_screen)
-        SDL_RenderPresent(screen->renderer);
+    SDL_RenderPresent(screen->renderer);
 }
 
 void GGScreenClear(GGScreen* screen)
@@ -247,7 +247,10 @@ void GGScreenSetBackgroundRenderFunc(GGScreen* screen, void (* render_func)(SDL_
 void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
 {
     if (screen->focus_widget == NULL)
+    {
         screen->focus_widget = widget;
+        GGWidgetSetFocus(widget, true);
+    }
     JGArrayListPush(screen->widgets, widget);
 }
 
@@ -259,10 +262,10 @@ TTF_Font* GGScreenSystemFont(GGScreen* screen)
 bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
 {
     // render all widgets
-    GGWidget* focus_widget;
+    GGWidget* focus_widget = screen->focus_widget;
 
     /* if the DPad was pushed, find the closed widget and change focus */
-    if (event->type == SDL_KEYUP)
+    if (event->type == SDL_KEYDOWN)
     {
         switch (event->key.keysym.sym)
         {
@@ -283,7 +286,6 @@ bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
                 break;
 
             default:
-                focus_widget = screen->focus_widget;
                 break;
         }
     }
@@ -292,7 +294,11 @@ bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
         return false;
 
     if (focus_widget != screen->focus_widget)
+    {
+        GGWidgetSetFocus(screen->focus_widget, false);
         screen->focus_widget = focus_widget;
+        GGWidgetSetFocus(focus_widget, true);
+    }
 
     return focus_widget->handle_event_func(focus_widget, event);
 }
