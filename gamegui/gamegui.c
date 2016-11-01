@@ -40,11 +40,29 @@ bool GGInit(int* argc, char*** argv)
         GGSetLastError("%s", SDL_GetError());
         return false;
     }
+    
+    if (TTF_Init() != 0)
+    {
+        GGSetLastError("%s", SDL_GetError());
+        SDL_Quit();
+        return false;
+    }
+    
+    if (IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG != IMG_INIT_PNG)
+    {
+        TTF_Quit();
+        SQL_Quit();
+        GGSetLastError("%s", SDL_GetError());
+        return false;
+    }
+    
     return true;
 }
 
-void GGQUit()
+void GGQuit()
 {
+    IMG_Quit();
+    TTF_Quit();
     SDL_Quit();
 }
 
@@ -98,7 +116,7 @@ int GGStart(GGScreen* screen)
 
         ticks = SDL_GetTicks() - ticks;
         
-        printf("Rendering & Event processing took %d milliseconds.\n",ticks);
+       // printf("Rendering & Event processing took %d milliseconds.\n",ticks);
 
         if (ticks < 1000 / FRAMERATE)
         {

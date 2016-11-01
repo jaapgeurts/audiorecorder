@@ -26,20 +26,21 @@ struct GGButton
     SDL_Texture* label_texture;
     int          label_w;
     int          label_h;
+    
+    GGEventFunc  on_click;
 };
 
 static bool GGButtonHandleEvent(GGWidget* widget, SDL_Event* event);
 
 GGButton* GGButtonCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height)
 {
-    GGButton* btn = (GGButton*)malloc(sizeof(GGButton));
+    GGButton* btn = (GGButton*)calloc(1,sizeof(GGButton));
 
     GGWidgetInit(&btn->widget, left, top, width, height);
     btn->label                    = strdup(label);
     btn->widget.render_func       = GGButtonRender;
     btn->widget.handle_event_func = GGButtonHandleEvent;
     btn->screen                   = screen;
-    btn->label_texture            = NULL;
 
     // add it to the screen
 
@@ -53,9 +54,10 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
     GGButton* button = (GGButton*)widget;
 
     SDL_Color white = { 0xff, 0xff, 0xff, 0xff };
+    SDL_Color gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
     SDL_Color red   = {0xff, 0x00, 0x00, 0xff};
 
-    SDL_Color color = widget->has_focus ? red : white;
+    SDL_Color color = widget->has_focus ? red : gray;
 
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_Rect rect = {
@@ -104,11 +106,15 @@ static bool GGButtonHandleEvent(GGWidget* widget, SDL_Event* event)
         switch (event->key.keysym.sym)
         {
             case PRIMARY_ACTION:
-                handled = true;
-                printf("Button: %s, A button pressed\n", button->label);
-                break;
+                if (button->on_click != NULL)
+                    return button->on_click(widget,event);
         }
     }
 
     return handled;
+}
+
+void GGButtonSetOnClickFunc(GGButton* button, GGEventFunc on_click)
+{
+    button->on_click = on_click;
 }

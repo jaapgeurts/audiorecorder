@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 typedef struct GGWidget GGWidget;
 

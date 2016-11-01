@@ -24,6 +24,7 @@
    DPad events are caught by the screen and are used to move input focus between widgets
 
  */
+
 #include "../containerlib/arraylist.h"
 
 #include "gamegui.h"
@@ -60,6 +61,7 @@ static void GGCleanUp(GGScreen* screen)
             SDL_DestroyWindow(screen->window);
         free(screen);
     }
+    
 }
 
 static void GGInternalScreenClear(SDL_Renderer* renderer)
@@ -92,8 +94,6 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
     // get the midpoint of the widget
     x = midpoint_x(current);
     y = midpoint_y(current);
-
-    printf("Start focus finding\n");
 
     for (i = 0; i < count; i++)
     {
@@ -146,8 +146,6 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
         }
     }
 
-    if (candidate)
-        printf("Focus found:\n");
     return candidate;
 }
 
@@ -190,22 +188,17 @@ GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscre
         return NULL;
     }
 
-    if (TTF_Init() != 0)
-    {
-        GGCleanUp(screen);
-        GGSetLastError("%s", SDL_GetError());
-    }
-
     screen->system_font = TTF_OpenFont("assets/DroidSans.ttf", 11);
 
     if (!screen->system_font)
     {
         GGCleanUp(screen);
         GGSetLastError("%s", SDL_GetError());
+        return NULL;
     }
 
     screen->render_background_func = GGInternalScreenClear;
-
+    
     return screen;
 }
 
@@ -220,7 +213,7 @@ void GGScreenRender(GGScreen* screen)
     int i;
     int count = JGArrayListCount(screen->widgets);
 
-    printf("Draw background\n");
+   // printf("Draw background\n");
     // clear the screen first
     screen->render_background_func(screen->renderer);
 
