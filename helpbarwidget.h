@@ -5,20 +5,20 @@
 
 #include "gamegui/gamegui.h"
 
-#define TOTAL_KEYS 9
+#define TOTAL_BUTTONS 9
 
 typedef enum
 {
-    GCW_KEY_A,
-    GCW_KEY_B,
-    GCW_KEY_X,
-    GCW_KEY_Y,
-    GCW_KEY_SELECT,
-    GCW_KEY_START,
-    GCW_KEY_DPAD,
-    GCW_KEY_SHOULDER_LEFT,
-    GCW_KEY_SHOULDER_RIGHT
-} GGHelpBarKey;
+    GCW_BTN_A,
+    GCW_BTN_B,
+    GCW_BTN_X,
+    GCW_BTN_Y,
+    GCW_BTN_SELECT,
+    GCW_BTN_START,
+    GCW_BTN_DPAD,
+    GCW_BTN_SHOULDER_LEFT,
+    GCW_BTN_SHOULDER_RIGHT
+} GGHelpBarButton;
 
 
 typedef struct
@@ -26,9 +26,11 @@ typedef struct
     GGWidget  widget;
     GGScreen* screen;
 
-    char* help_text[TOTAL_KEYS];
-    SDL_Surface* icons[TOTAL_KEYS];
-    SDL_Texture* key_texture[TOTAL_KEYS];
+    char* help_text[TOTAL_BUTTONS];
+    SDL_Surface* icons[TOTAL_BUTTONS];
+    SDL_Texture* textures[TOTAL_BUTTONS];
+    
+    SDL_Rect help_rect[TOTAL_BUTTONS];
     
 } GGHelpBar;
 
@@ -39,7 +41,7 @@ GGHelpBar* GGHelpBarCreate(GGScreen* screen);
 void GGHelpBarDestroy(GGHelpBar* helpbar);
 
 /* setting text to NULL will disable help for this key */
-void GGHelpBarSetHelp(GGHelpBar* helpbar, GGHelpBarKey key, const char* text);
+void GGHelpBarSetHelp(GGHelpBar* helpbar, GGHelpBarButton key, const char* text);
 
 void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer);
 

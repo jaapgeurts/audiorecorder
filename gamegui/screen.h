@@ -19,6 +19,7 @@ void GGScreenSetBackgroundRenderFunc(GGScreen* screen, void (* render_func)(SDL_
 void GGScreenAddWidget(GGScreen* screen, GGWidget* widget);
 int GGScreenGetHeight(GGScreen* screen);
 int GGScreenGetWidth(GGScreen* screen);
+int GGScreenGetDepth(GGScreen* screen);
 
 TTF_Font* GGScreenSystemFont(GGScreen* screen);
 

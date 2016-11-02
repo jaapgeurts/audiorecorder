@@ -18,7 +18,7 @@ void GGWaveformDestroy(GGWaveform* waveform);
 
 void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer);
 
-void GGWaveformSetData(GGWidget* widget, int16_t* data, uint32_t count);
+void GGWaveformSetData(GGWaveform* waveform, int16_t* data, uint32_t count);
 
 
 #endif // WAVEFORMWIDGET_H_INCLUDED

@@ -224,6 +224,12 @@ int GGScreenGetWidth(GGScreen* screen)
     
 }
 
+int GGScreenGetDepth(GGScreen* screen)
+{
+    SDL_DisplayMode mode;
+    SDL_GetWindowDisplayMode(screen->window,&mode);
+    return SDL_BITSPERPIXEL(mode.format);
+}
 
 void GGScreenRender(GGScreen* screen)
 {
@@ -238,8 +244,6 @@ void GGScreenRender(GGScreen* screen)
     for (i = 0; i < count; i++)
     {
         GGWidget* widget = JGArrayListGet(screen->widgets, i);
-
-        SDL_Rect rect = {widget->left, widget->top, widget->width, widget->height};
 
         widget->render_func(widget, screen->renderer);
     }

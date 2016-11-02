@@ -1,4 +1,3 @@
-#include <time.h>
 #include <stdlib.h>
 
 #include "waveformwidget.h"
@@ -15,17 +14,9 @@ GGWaveform* GGWaveformCreate(GGScreen* screen, int left, int top,  int width, in
     // 10 seconds @44.1Khz, 1 channel
 
     int count = wfw->widget.width - 2;
-    srand(time(NULL));
 
     wfw->samples = (int16_t*)calloc(1, count * sizeof(int16_t));
 
-    /*    for (int i = 0; i < count; i++)
-        {
-            int16_t rndnum = (float)rand() / (float)RAND_MAX * 65535.0 - 32768.0;
-
-            wfw->samples[i] = rndnum;
-        }
-     */
     // add it to the screen
 
     GGScreenAddWidget(screen, &wfw->widget);
@@ -59,37 +50,51 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 
     float vs    = (widget->height - 2) / 65535.0;
     int   lasty = widget->top + (widget->height - 2) / 2;
+    int   lastx = 0;
 
     for (int x = 0; x < widget->width - 2; x++)
     {
-        int y = widget->top + widget->height / 2 + (int)(wfw->samples[x] * vs);
-        SDL_RenderDrawLine(renderer, widget->left + x + 1, lasty + 1, widget->left + x + 1, y + 1);
+        int y = widget->top + (widget->height-2) / 2 + (int)(wfw->samples[x] * vs);
+        SDL_RenderDrawLine(renderer, widget->left+lastx+1, lasty + 1, widget->left + x + 1, y + 1);
         lasty = y;
+        lastx = x;
     }
 }
 
-void GGWaveformSetData(GGWidget* widget, int16_t* data, uint32_t count)
+void GGWaveformSetData(GGWaveform* wfw, int16_t* data, uint32_t count)
 {
-    GGWaveform* wfw        = (GGWaveform*)widget;
-    int         numsamples = widget->width - 2;       // -2 for a 1 pixel line at the borders
+    int         maxdstsamples = wfw->widget.width - 2;       // -2 for a 1 pixel line at the borders
+    // only ever display 10s worth of samples.
+    int         maxsrcsamples = 10 * 44100; // 10s * 44100KHz
     int         step;
 
-    if (count < numsamples)
-        step = 1;
-    else
-        step = count / widget->width;
+    int         takesrcsamples = maxsrcsamples;
+    int         putdstsamples  = maxdstsamples;
+
+    if (count < takesrcsamples)
+        takesrcsamples = count;
+
+    if (takesrcsamples < putdstsamples)
+    {
+        putdstsamples = takesrcsamples;
+    }
+
+    step = takesrcsamples / putdstsamples;
 
     int i = 0;
 
-    for (; i < widget->width - 2; i++)
+    while (i < putdstsamples)
     {
         wfw->samples[i] = data[i * step];
+        i++;
     }
 
-    if (step == 1)
+    int j = i;
+
+    while (j < maxdstsamples)
     {
         // pad with zeros
-        for (int j = i; j < numsamples; j++)
-            wfw->samples[j] = 0;
+        wfw->samples[j] = 0;
+        j++;
     }
 }
