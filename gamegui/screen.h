@@ -21,6 +21,8 @@ int GGScreenGetHeight(GGScreen* screen);
 int GGScreenGetWidth(GGScreen* screen);
 int GGScreenGetDepth(GGScreen* screen);
 
+void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget);
+
 TTF_Font* GGScreenSystemFont(GGScreen* screen);
 
 bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event);

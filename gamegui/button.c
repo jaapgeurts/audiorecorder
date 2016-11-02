@@ -107,7 +107,7 @@ static bool GGButtonHandleEvent(GGWidget* widget, SDL_Event* event)
         {
             case PRIMARY_ACTION:
                 if (button->on_click != NULL)
-                    return button->on_click(widget,event);
+                    handled = button->on_click(widget,event);
         }
     }
 

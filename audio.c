@@ -4,21 +4,21 @@
 
 char* device = "default";
 
-void playsound()
+void playsound(int16_t* data, int count)
 {
     int                  err;
     short*               buf;
     snd_pcm_t*           playback_handle;
     snd_pcm_hw_params_t* hw_params;
 
-    struct stat          st;
+/*    struct stat          st;
 
     stat("test.raw", &st);
     unsigned long len = st.st_size / sizeof(short);
     printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
 
     FILE* fp = fopen("test.raw", "r");
-
+*/
     if ((err = snd_pcm_open (&playback_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
     {
         fprintf (stderr, "cannot open audio device %s (%s)\n",
@@ -64,7 +64,7 @@ void playsound()
         exit (1);
     }
 
-    if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, 2)) < 0)
+    if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, 1)) < 0)
     {
         fprintf (stderr, "cannot set channel count (%s)\n",
             snd_strerror (err));
@@ -84,7 +84,7 @@ void playsound()
     frames *= 16;  //multiply by 8 it so that the buffer always has enough
     //  snd_pcm_hw_params_get_buffer_size(hw_params,&frames);
 
-    printf("Settin buffer: %u\n", frames);
+    printf("Settin buffer: %lu\n", frames);
 
     if (frames == 0)
     {
@@ -108,9 +108,21 @@ void playsound()
 
     int  actual;
     long total = 0;
+    int start = 0;
+    int loop = 0;
     do
     {
-        actual = fread(buf, sizeof(short), frames * 2, fp);
+        start = loop * frames;
+        int i;
+        // copy into the buffer so we may interleave the data
+        for (i=0;i <frames;i++) {
+            if (start+i>= count)
+                break;
+            buf[i*2] = data[start+i];
+            buf[i*2+1] = data[start+i];
+        }
+        loop++;
+        actual = i;
         total += actual;
 
         if (actual > 0)
@@ -118,7 +130,7 @@ void playsound()
             printf(".");
             fflush(stdout);
 
-            if ((err = snd_pcm_writei (playback_handle, buf, actual / sizeof(short))) == -EPIPE)
+            if ((err = snd_pcm_writei (playback_handle, buf, actual)) == -EPIPE)
             {
                 printf("Underrun \n");
                 snd_pcm_prepare (playback_handle);
@@ -132,10 +144,9 @@ void playsound()
         }
     }
     while (actual != 0);
-    printf("Wrote: %d shorts\n", total);
+    printf("Wrote: %ld shorts\n", total);
 
     free(buf);
-    fclose(fp);
 
     snd_pcm_drain(playback_handle);
 
@@ -197,7 +208,7 @@ int16_t* recordsound()
         exit (1);
     }
 
-    if ((err = snd_pcm_hw_params_set_channels (capture_handle, hw_params, 2)) < 0)
+    if ((err = snd_pcm_hw_params_set_channels (capture_handle, hw_params, 1)) < 0)
     {
         fprintf (stderr, "cannot set channel count (%s)\n",
             snd_strerror (err));

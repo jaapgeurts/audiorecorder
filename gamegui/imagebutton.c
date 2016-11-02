@@ -28,6 +28,8 @@ struct GGImageButton
     SDL_Texture* icon_texture;
     int          icon_w;
     int          icon_h;
+    
+    GGEventFunc  on_click;
 };
 
 static bool GGImageButtonHandleEvent(GGWidget* widget, SDL_Event* event);
@@ -101,7 +103,7 @@ void GGImageButtonDestroy(GGImageButton* button)
 
 static bool GGImageButtonHandleEvent(GGWidget* widget, SDL_Event* event)
 {
-  //  GGImageButton* button  = (GGImageButton*)widget;
+    GGImageButton* button  = (GGImageButton*)widget;
     bool      handled = false;
     
     if (event->type == SDL_KEYUP)
@@ -109,11 +111,16 @@ static bool GGImageButtonHandleEvent(GGWidget* widget, SDL_Event* event)
         switch (event->key.keysym.sym)
         {
             case PRIMARY_ACTION:
-                handled = true;
-                printf("ImageButton, A button pressed\n");
+                if (button->on_click != NULL)
+                    handled = button->on_click(widget,event);
                 break;
         }
     }
     
     return handled;
+}
+
+void GGImageButtonSetOnClickFunc(GGImageButton* button, GGEventFunc on_click)
+{
+    button->on_click = on_click;
 }

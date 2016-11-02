@@ -123,6 +123,13 @@ int GGStart(GGScreen* screen)
             SDL_Delay(1000 / FRAMERATE - ticks);
         }
     } // end main loop
-
+    
     return 0;
+}
+
+void GGStop()
+{
+    SDL_Event event;
+    event.type = SDL_QUIT;
+    SDL_PushEvent(&event);
 }

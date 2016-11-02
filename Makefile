@@ -1,5 +1,6 @@
 TARGET := audiorecorder
 MIPSTARGET := mips/audiorecorder
+OPKNAME := audiorecorder.opk
 CSRCS := $(wildcard *.c) $(wildcard gamegui/*.c) $(wildcard containerlib/*.c)
 CPPSRCS := $(wildcard *.cpp) 
 HDRS := $(wildcard *.h)
@@ -51,3 +52,15 @@ $(MIPSTARGET): $(MIPSOBJS)
 clean:
 	rm -f $(TARGET) $(OBJS)
 	rm -f mips/$(TARGET) $(MIPSOBJS)
+	rm -rf release/*
+	
+$(OPKNAME): $(MIPSTARGET)
+
+dist: $(OPKNAME)
+	mkdir -p release
+	rm -rf release/*
+	cp -R assets release
+	cp $(MIPSTARGET) release
+	cp default.gcw0.desktop release
+	cp audiorecorder.png release/appicon.png
+	mksquashfs release $^ -all-root -noappend -no-exports -no-xattrs

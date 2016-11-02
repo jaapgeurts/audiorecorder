@@ -1,0 +1,11 @@
+[Desktop Entry]
+
+Type=Application
+Name=Audio Recorder
+Comment=Record audio throught the built in mic
+Exec=audiorecorder
+Icon=appicon
+Categories=applications
+Terminal=false
+Type=Application
+

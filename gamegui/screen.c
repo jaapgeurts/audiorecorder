@@ -101,7 +101,7 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
         // exclude ourselves
         if (cursor == current)
             continue;
-        
+
         if (!cursor->accepts_focus)
             continue;
 
@@ -211,23 +211,25 @@ void GGScreenDestroy(GGScreen* screen)
 
 int GGScreenGetHeight(GGScreen* screen)
 {
-    int h,t;
-    SDL_GetWindowSize(screen->window,&t,&h);
+    int h, t;
+
+    SDL_GetWindowSize(screen->window, &t, &h);
     return h;
 }
 
 int GGScreenGetWidth(GGScreen* screen)
 {
-    int w,t;
-    SDL_GetWindowSize(screen->window,&w,&t);
+    int w, t;
+
+    SDL_GetWindowSize(screen->window, &w, &t);
     return w;
-    
 }
 
 int GGScreenGetDepth(GGScreen* screen)
 {
     SDL_DisplayMode mode;
-    SDL_GetWindowDisplayMode(screen->window,&mode);
+
+    SDL_GetWindowDisplayMode(screen->window, &mode);
     return SDL_BITSPERPIXEL(mode.format);
 }
 
@@ -263,12 +265,26 @@ void GGScreenSetBackgroundRenderFunc(GGScreen* screen, void (* render_func)(SDL_
 
 void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
 {
-    if (screen->focus_widget == NULL)
+    if (screen->focus_widget == NULL && widget->accepts_focus)
     {
-        screen->focus_widget = widget;
-        GGWidgetSetFocus(widget, true);
+        screen->focus_widget            = widget;
+        screen->focus_widget->has_focus = true;
     }
     JGArrayListPush(screen->widgets, widget);
+}
+
+void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget)
+{
+    if (widget->accepts_focus)
+    {
+        screen->focus_widget->has_focus = false;
+        screen->focus_widget            = widget;
+        screen->focus_widget->has_focus = true;
+    }
+    else
+    {
+        fprintf(stderr, "Attempt to set focus to widget that doesn't accept it\n");
+    }
 }
 
 TTF_Font* GGScreenSystemFont(GGScreen* screen)
@@ -310,16 +326,10 @@ bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
     if (focus_widget == NULL)
         return false;
 
-    if (focus_widget != screen->focus_widget)
-    {
-        GGWidgetSetFocus(screen->focus_widget, false);
-        screen->focus_widget = focus_widget;
-        GGWidgetSetFocus(focus_widget, true);
-    }
-
+    GGScreenSetFocusWidget(screen, focus_widget);
+    
     if (focus_widget->handle_event_func == NULL)
         return false;
-    
+
     return focus_widget->handle_event_func(focus_widget, event);
-    
 }

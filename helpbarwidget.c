@@ -78,7 +78,7 @@ void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer)
 
         if (helpbar->textures[i] == NULL && helpbar->icons[i] != NULL)
         {
-            int          icon_spacing = 2;
+            int          icon_spacing = 4;
             int          padding      = 0;
             
         
@@ -112,8 +112,8 @@ void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer)
         SDL_Rect dstrect = {
             helpbar->widget.left + x + 1,  helpbar->widget.top + y, helpbar->help_rect[i].w, helpbar->help_rect[i].h
         };
-        printf("Rendering help: %s at, %d,%d,%d,%d\n", helpbar->help_text[i], dstrect.x, dstrect.y, dstrect.w,
-            dstrect.h);
+//        printf("Rendering help: %s at, %d,%d,%d,%d\n", helpbar->help_text[i], dstrect.x, dstrect.y, dstrect.w,
+//            dstrect.h);
         SDL_RenderCopy(renderer, helpbar->textures[i], NULL, &dstrect);
         x +=  dstrect.w + help_spacing;
     }

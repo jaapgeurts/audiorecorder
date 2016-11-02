@@ -9,6 +9,7 @@
 
 #include "screen.h"
 #include "button.h"
+#include "label.h"
 #include "imagebutton.h"
 
 #define UNUSED(x) (void)(x)
@@ -18,5 +19,6 @@ void GGQuit();
 const char* GGLastError();
 void GGSetLastError(char* fmt, ...);
 int GGStart(GGScreen* screen);
+void GGStop();
 
 #endif // GAMEGUI_H_INCLUDED

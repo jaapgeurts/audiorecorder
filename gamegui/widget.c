@@ -27,10 +27,8 @@ void GGWidgetInit(GGWidget* widget, int left, int top,  int width, int height)
     
 }
 
-void GGWidgetSetFocus(GGWidget* widget, bool has_focus)
+/* Setting font to NULL reverts back to the system font */
+void GGWidgetSetFont(GGWidget* widget, TTF_Font* font)
 {
-    if (widget->has_focus != has_focus)
-    {
-        widget->has_focus = has_focus;
-    }
+    widget->font = font;
 }
