@@ -73,6 +73,8 @@ static void new_filename(char* buf, int size)
 
 int main(int argc, char** argv)
 {
+    
+
     GGScreen* screen;
 
     if (!GGInit(&argc, &argv))
@@ -118,8 +120,13 @@ int main(int argc, char** argv)
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
     
     // playsound();
-
+    
+  //  Mixer* mixer = mixer_open(GCW_MIXER_MIC);
+  //  mixer_enable_capture(mixer);    
+  //  mixer_close(mixer);
+    
     GGStart(screen);
+    
 
     GGScreenDestroy(screen);
     

@@ -1,6 +1,7 @@
-#include <alsa/asoundlib.h>
 #include <sndfile.h>
 #include <sys/stat.h>
+
+#include "audio.h"
 
 char* device = "default";
 
@@ -11,14 +12,14 @@ void playsound(int16_t* data, int count)
     snd_pcm_t*           playback_handle;
     snd_pcm_hw_params_t* hw_params;
 
-/*    struct stat          st;
+    /*    struct stat          st;
 
-    stat("test.raw", &st);
-    unsigned long len = st.st_size / sizeof(short);
-    printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
+        stat("test.raw", &st);
+        unsigned long len = st.st_size / sizeof(short);
+        printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
 
-    FILE* fp = fopen("test.raw", "r");
-*/
+        FILE* fp = fopen("test.raw", "r");
+     */
     if ((err = snd_pcm_open (&playback_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
     {
         fprintf (stderr, "cannot open audio device %s (%s)\n",
@@ -94,7 +95,6 @@ void playsound(int16_t* data, int count)
 
     buf = (short*)malloc(sizeof(short) * frames * 2);
 
-
     snd_pcm_hw_params_free (hw_params);
 
     if ((err = snd_pcm_prepare (playback_handle)) < 0)
@@ -108,18 +108,20 @@ void playsound(int16_t* data, int count)
 
     int  actual;
     long total = 0;
-    int start = 0;
-    int loop = 0;
+    int  start = 0;
+    int  loop  = 0;
     do
     {
         start = loop * frames;
         int i;
+
         // copy into the buffer so we may interleave the data
-        for (i=0;i <frames;i++) {
-            if (start+i>= count)
+        for (i = 0; i < frames; i++)
+        {
+            if (start + i >= count)
                 break;
-            buf[i*2] = data[start+i];
-            buf[i*2+1] = data[start+i];
+            buf[i * 2]     = data[start + i];
+            buf[i * 2 + 1] = data[start + i];
         }
         loop++;
         actual = i;
@@ -158,8 +160,8 @@ int16_t* recordsound()
     int                  i;
     int                  err;
     short*               buf;
-    int16_t* result;
-    
+    int16_t*             result;
+
     snd_pcm_t*           capture_handle;
     snd_pcm_hw_params_t* hw_params;
 
@@ -231,11 +233,11 @@ int16_t* recordsound()
         exit (1);
     }
 
-    snd_pcm_uframes_t frames = 1024;
-    int buf_size = sizeof(short) * frames * 2;
-    buf = malloc(buf_size);
-    result = (int16_t*)malloc(sizeof(int16_t)*frames*500);
-    
+    snd_pcm_uframes_t frames   = 1024;
+    int               buf_size = sizeof(short) * frames * 2;
+    buf    = malloc(buf_size);
+    result = (int16_t*)malloc(sizeof(int16_t) * frames * 500);
+
     SF_INFO  info = {
         .frames     = frames * 500 * 2, // two channels
         .samplerate = 44100,
@@ -256,9 +258,10 @@ int16_t* recordsound()
             exit (1);
         }
         sf_write_short(fp, buf, frames * 2);
-        for(int j=0;j<buf_size/2;j++)
+
+        for (int j = 0; j < buf_size / 2; j++)
         {
-            result[i*frames+j] = buf[j*2];
+            result[i * frames + j] = buf[j * 2];
         }
     }
 
@@ -266,4 +269,40 @@ int16_t* recordsound()
 
     snd_pcm_close (capture_handle);
     return result;
+}
+
+Mixer* mixer_open(const char* name)
+{
+    Mixer*      mixer = calloc(1, sizeof(Mixer));
+
+    const char* card = "default";
+
+    snd_mixer_open(&(mixer->handle), 0 );
+    snd_mixer_attach(mixer->handle, card);
+    snd_mixer_selem_register(mixer->handle, NULL, NULL);
+    snd_mixer_load(mixer->handle);
+
+    snd_mixer_selem_id_malloc(&(mixer->sid));
+    snd_mixer_selem_id_set_index(mixer->sid, 0);
+    snd_mixer_selem_id_set_name(mixer->sid, name);
+    mixer->elem = snd_mixer_find_selem(mixer->handle, mixer->sid);
+
+    if (mixer->elem == NULL)
+    {
+        fprintf(stderr, "Can't find mixer %s\n", name);
+        return NULL;
+    }
+    return mixer;
+}
+
+void mixer_enable_capture(Mixer* mixer)
+{
+    snd_mixer_selem_set_capture_switch(mixer->elem, SND_MIXER_SCHN_MONO, 1);
+}
+
+void mixer_close(Mixer* mixer)
+{
+    snd_mixer_selem_id_free(mixer->sid);
+    snd_mixer_close(mixer->handle);
+    free(mixer);
 }

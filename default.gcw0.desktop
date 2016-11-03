@@ -2,7 +2,7 @@
 
 Type=Application
 Name=Audio Recorder
-Comment=Record audio throught the built in mic
+Comment=Record audio
 Exec=audiorecorder
 Icon=appicon
 Categories=applications
