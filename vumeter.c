@@ -23,15 +23,14 @@ void GGVUMeterDestroy(GGVUMeter* vumeter)
     free(vumeter);
 }
 
-void GGVUMeterSetRange(GGVUMeter* vumeter, int min, int max)
-{
-    vumeter->min = min;
-    vumeter->max = max;
-}
-
-void GGVUMeterSetThreshold(GGVUMeter* vumeter, int threshold)
+void GGVUMeterSetThreshold(GGVUMeter* vumeter, float threshold)
 {
     vumeter->threshold = threshold;
+}
+
+void GGVUMeterSetCurrent(GGVUMeter* vumeter, float current)
+{
+    vumeter->current = current;
 }
 
 static bool GGVUMeterHandleEvent(GGWidget* widget, SDL_Event* event)
@@ -50,12 +49,17 @@ static bool GGVUMeterHandleEvent(GGWidget* widget, SDL_Event* event)
             case ACTION_BACK:
                 GGScreenReleaseDPad(vumeter->screen, widget);
                 break;
-                
+
             case NAVIGATE_UP:
-                printf("up\n");
+
+                if (vumeter->volume_up_func != NULL)
+                    vumeter->volume_up_func(widget);
                 break;
+
             case NAVIGATE_DOWN:
-                printf("down\n");
+
+                if (vumeter->volume_down_func != NULL)
+                    vumeter->volume_down_func(widget);
                 break;
         }
     }
@@ -79,4 +83,14 @@ void GGVUMeterRender(GGWidget* widget, SDL_Renderer* renderer)
         vumeter->widget.height
     };
     SDL_RenderDrawRect(renderer, &rect);
+
+    SDL_Color red = {0xff, 0x00, 0x00, 0xff};
+
+    int ih = widget->height -2; // internalheight
+    
+    int       h   = ih - ih * vumeter->current;
+    int       top = widget->top + h + 1;
+
+    SDL_SetRenderDrawColor(renderer, red.r, red.g, red.b, red.a);
+    SDL_RenderDrawLine(renderer, widget->left - 1, top, widget->left + widget->width + 1, top);
 }

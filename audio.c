@@ -317,17 +317,13 @@ Mixer* mixer_open(const char* name)
         fprintf(stderr, "Can't find mixer %s\n", name);
         return NULL;
     }
+
+    if (snd_mixer_selem_has_capture_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_get_capture_volume_range(mixer->elem, &mixer->volume_min, &mixer->volume_max);
+    else if (snd_mixer_selem_has_playback_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_get_playback_volume_range(mixer->elem, &mixer->volume_min, &mixer->volume_max);
+
     return mixer;
-}
-
-void mixer_enable_capture(Mixer* mixer)
-{
-    snd_mixer_selem_set_capture_switch(mixer->elem, SND_MIXER_SCHN_MONO, 1);
-}
-
-void mixer_set_volume(Mixer* mixer, int value)
-{
-    snd_mixer_selem_set_capture_volume(mixer->elem, SND_MIXER_SCHN_MONO, value);
 }
 
 void mixer_close(Mixer* mixer)
@@ -335,4 +331,34 @@ void mixer_close(Mixer* mixer)
     snd_mixer_selem_id_free(mixer->sid);
     snd_mixer_close(mixer->handle);
     free(mixer);
+}
+
+void mixer_enable_capture(Mixer* mixer)
+{
+    snd_mixer_selem_set_capture_switch(mixer->elem, SND_MIXER_SCHN_MONO, 1);
+}
+
+void mixer_set_volume(Mixer* mixer, float value)
+{
+    long int val = (mixer->volume_max - mixer->volume_min) * value + mixer->volume_min;
+
+    //printf("Volume: %lu-%lu-%lu\n",mixer->volume_min,val,mixer->volume_max);
+
+    if (snd_mixer_selem_has_capture_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_set_capture_volume(mixer->elem, SND_MIXER_SCHN_MONO, val);
+    else if (snd_mixer_selem_has_playback_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_set_playback_volume(mixer->elem, SND_MIXER_SCHN_MONO, val);
+}
+
+float mixer_volume(Mixer* mixer)
+{
+    long int val;
+
+    if (snd_mixer_selem_has_capture_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_get_capture_volume(mixer->elem, SND_MIXER_SCHN_MONO, &val);
+    else if (snd_mixer_selem_has_playback_channel(mixer->elem, SND_MIXER_SCHN_MONO))
+        snd_mixer_selem_get_playback_volume(mixer->elem, SND_MIXER_SCHN_MONO, &val);
+
+  //  printf("Volume: %lu-%lu-%lu\n",mixer->volume_min,val,mixer->volume_max);
+    return (val - mixer->volume_min) / (float)(mixer->volume_max - mixer->volume_min);
 }

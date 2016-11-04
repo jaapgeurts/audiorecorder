@@ -23,6 +23,9 @@ typedef struct
     snd_mixer_t*          handle;
     snd_mixer_selem_id_t* sid;
     snd_mixer_elem_t*     elem;
+
+    long int volume_min;
+    long int volume_max;
 } Mixer;
 
 typedef struct
@@ -39,7 +42,7 @@ typedef struct
 PCM_Play* playback_open(char* name, unsigned int rate, int depth);
 void playback_close(PCM_Play* play);
 
-PCM_Capture* capture_open(char* name, unsigned int rate,int depth);
+PCM_Capture* capture_open(char* name, unsigned int rate, int depth);
 void capture_close(PCM_Capture* capture);
 
 void playsound(PCM_Play* play, int16_t* data, int count);
@@ -48,6 +51,10 @@ int16_t* recordsound(PCM_Capture* capture);
 Mixer* mixer_open(const char* name);
 void mixer_close(Mixer* mixer);
 void mixer_enable_capture(Mixer* mixer);
-void mixer_set_volume(Mixer* mixer, int value);
+void mixer_set_volume(Mixer* mixer, float volume);
+
+/* Get volume min and max */
+void mixer_volume_range(Mixer* mixer, long int* min, long int* max);
+float mixer_volume(Mixer* mixer);
 
 #endif

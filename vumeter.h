@@ -7,10 +7,12 @@ typedef struct {
     GGWidget widget;
     GGScreen* screen;
     
-    int min;
-    int max;
+    float current;
     
-    int threshold; // the red threshold above which distortion occurs
+    float threshold; // the red threshold above which distortion occurs
+    
+    GGWidgetChangeFunc volume_up_func;
+    GGWidgetChangeFunc volume_down_func;
     
 } GGVUMeter;
 
@@ -18,8 +20,8 @@ typedef struct {
 GGVUMeter* GGVUMeterCreate(GGScreen* screen, int left, int top,  int width, int height);
 void GGVUMeterDestroy(GGVUMeter* vumeter);
 
-void GGVUMeterSetRange(GGVUMeter* vumeter, int min, int max);
-void GGVUMeterSetThreshold(GGVUMeter* vumeter, int threshold);
+void GGVUMeterSetThreshold(GGVUMeter* vumeter, float threshold);
+void GGVUMeterSetCurrent(GGVUMeter* vumeter, float current);
 
 void GGVUMeterRender(GGWidget* widget, SDL_Renderer* renderer);
 

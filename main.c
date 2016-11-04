@@ -36,7 +36,11 @@ int          bitdepth    = 16;
 
 int16_t*     data = NULL;
 
-GGHelpBar*   helpbar1 = NULL;
+GGHelpBar*   helpbar1       = NULL;
+Mixer*       mixer_mic          = NULL;
+Mixer*       mixer_pcm          = NULL;
+float        current_volume = 0.8;
+#define VOLUME_STEP 0.1
 
 static void render_bg(SDL_Renderer* renderer)
 {
@@ -135,6 +139,28 @@ static void vumeter_release_dpad(GGWidget* widget)
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
 }
 
+static void vumeter_volume_up(GGWidget* widget)
+{
+    GGVUMeter* vumeter = (GGVUMeter*)widget;
+    current_volume += VOLUME_STEP;
+
+    if (current_volume > 1)
+        current_volume = 1;
+    mixer_set_volume(mixer_mic, current_volume);
+    GGVUMeterSetCurrent(vumeter, current_volume);
+}
+
+static void vumeter_volume_down(GGWidget* widget)
+{
+    GGVUMeter* vumeter = (GGVUMeter*)widget;
+    current_volume -= VOLUME_STEP;
+    
+    if (current_volume < 0)
+        current_volume = 0;
+    mixer_set_volume(mixer_mic, current_volume);
+    GGVUMeterSetCurrent(vumeter, current_volume);
+}
+
 int main(int argc, char** argv)
 {
     GGScreen* screen;
@@ -174,33 +200,41 @@ int main(int argc, char** argv)
     GGImageButton* btn_replay = GGImageButtonCreate(screen, "assets/replay.png", 95, 130, 30, 30);
     GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
-    GGVUMeter*     vumeter = GGVUMeterCreate(screen, 280, 40, 30, 80);
+    mixer_mic = mixer_open(MIXER_MIC);
+    mixer_pcm = mixer_open(MIXER_PCM);
+
+    if (mixer_mic != NULL)
+    {
+        mixer_enable_capture(mixer_mic);
+        current_volume = mixer_volume(mixer_mic);
+    }
+
+    // VU Meter
+    GGVUMeter* vumeter = GGVUMeterCreate(screen, 280, 40, 30, 80);
     vumeter->widget.focus_gained_func = vumeter_focus_gained;
     vumeter->widget.focus_lost_func   = vumeter_focus_lost;
+    vumeter->volume_up_func           = vumeter_volume_up;
+    vumeter->volume_down_func         = vumeter_volume_down;
     GGScreenSetGrabDPadCallBack(screen, vumeter_grab_dpad);
     GGScreenSetReleaseDPadCallBack(screen, vumeter_release_dpad);
+    float vol = mixer_volume(mixer_mic);
+    GGVUMeterSetCurrent(vumeter, vol);
 
+    // Helpbar
     helpbar1 = GGHelpBarCreate(screen);
     GGHelpBarSetHelp(helpbar1, GCW_BTN_A, "Record");
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
     //    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELET, "Exit");
 
+    // Set initial focus widget
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
 
     // playsound();
 
-    Mixer* mixer = mixer_open(MIXER_MIC);
-
-    if (mixer != NULL)
-    {
-        mixer_enable_capture(mixer);
-        mixer_set_volume(mixer, 25);
-    }
-
     GGStart(screen);
 
-    if (mixer)
-        mixer_close(mixer);
+    if (mixer_mic)
+        mixer_close(mixer_mic);
 
     GGScreenDestroy(screen);
 
