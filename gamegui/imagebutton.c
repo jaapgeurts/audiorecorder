@@ -108,7 +108,7 @@ static bool GGImageButtonHandleEvent(GGWidget* widget, SDL_Event* event)
     {
         switch (event->key.keysym.sym)
         {
-            case PRIMARY_ACTION:
+            case ACTION_PRIMARY:
                 if (button->on_click != NULL)
                     handled = button->on_click(widget,event);
                 break;

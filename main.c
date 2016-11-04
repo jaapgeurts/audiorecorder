@@ -32,9 +32,11 @@ SDL_Color   dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
  * Default recording settings
  */
 unsigned int sample_rate = 44100;
-int bitdepth = 16;
+int          bitdepth    = 16;
 
-int16_t*    data = NULL;
+int16_t*     data = NULL;
+
+GGHelpBar*   helpbar1 = NULL;
 
 static void render_bg(SDL_Renderer* renderer)
 {
@@ -52,7 +54,7 @@ static bool on_exit_click(GGWidget* widget, SDL_Event* event)
 
 static bool on_record_click(GGWidget* widget, SDL_Event* event)
 {
-    PCM_Capture* capture = capture_open(AUDIO_DEVICE,sample_rate,bitdepth);
+    PCM_Capture* capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
 
     if (capture == NULL)
     {
@@ -61,7 +63,7 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     }
 
     printf("Start recording\n");
-    
+
     if (data)
         free(data);
 
@@ -76,26 +78,23 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     return true;
 }
 
-
 static bool on_play_click(GGWidget* widget, SDL_Event* event)
 {
+    PCM_Play* play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
 
-    
-    PCM_Play* play = playback_open(PLAYBACK_DEVICE,sample_rate,bitdepth);
     if (play == NULL)
     {
-        printf("Can't open device %s for playback\n",PLAYBACK_DEVICE);
+        printf("Can't open device %s for playback\n", PLAYBACK_DEVICE);
         return true;
     }
-    
+
     printf("Start playback\n");
 
-    playsound(play,data, 1024 * 500);
+    playsound(play, data, 1024 * 500);
 
     printf("playback done\n");
-    
+
     playback_close(play);
-    
 
     return true;
 }
@@ -108,6 +107,32 @@ static void new_filename(char* buf, int size)
     time (&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
+}
+
+static void vumeter_focus_gained(GGWidget* widget)
+{
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
+}
+
+static void vumeter_focus_lost(GGWidget* widget)
+{
+    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
+}
+
+static void vumeter_grab_dpad(GGWidget* widget)
+{
+    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, "Release");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "^v Inc/Dec Level");
+}
+
+static void vumeter_release_dpad(GGWidget* widget)
+{
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
 }
 
 int main(int argc, char** argv)
@@ -150,8 +175,12 @@ int main(int argc, char** argv)
     GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
     GGVUMeter*     vumeter = GGVUMeterCreate(screen, 280, 40, 30, 80);
+    vumeter->widget.focus_gained_func = vumeter_focus_gained;
+    vumeter->widget.focus_lost_func   = vumeter_focus_lost;
+    GGScreenSetGrabDPadCallBack(screen, vumeter_grab_dpad);
+    GGScreenSetReleaseDPadCallBack(screen, vumeter_release_dpad);
 
-    GGHelpBar*     helpbar1 = GGHelpBarCreate(screen);
+    helpbar1 = GGHelpBarCreate(screen);
     GGHelpBarSetHelp(helpbar1, GCW_BTN_A, "Record");
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
     //    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELET, "Exit");
@@ -176,7 +205,7 @@ int main(int argc, char** argv)
     GGScreenDestroy(screen);
 
     GGQuit();
-    
+
     if (data)
         free(data);
 

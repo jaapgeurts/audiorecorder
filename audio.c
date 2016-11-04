@@ -14,8 +14,7 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 #else
     int channels = 1;
 #endif
-    
-   
+
     if ((err = snd_pcm_open (&(play->playback_handle), name, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
     {
         fprintf (stderr, "cannot open audio device %s (%s)\n", name, snd_strerror (err));
@@ -41,6 +40,7 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 #else
     snd_pcm_access_t access = SND_PCM_ACCESS_RW_INTERLEAVED;
 #endif
+
     if ((err = snd_pcm_hw_params_set_access (play->playback_handle, hw_params, access)) < 0)
     {
         fprintf (stderr, "cannot set access type (%s)\n", snd_strerror (err));
@@ -183,7 +183,6 @@ void capture_close(PCM_Capture* capture)
     free(capture);
 }
 
-
 void playsound(PCM_Play* play, int16_t* data, int count)
 {
     int err;
@@ -203,10 +202,8 @@ void playsound(PCM_Play* play, int16_t* data, int count)
         return;
     }
 
-    
     printf("before play\n");
-    
-   
+
     int start = 0;
 
     while (start < count)
@@ -226,8 +223,10 @@ void playsound(PCM_Play* play, int16_t* data, int count)
 #ifdef GCW0
         short* buf[2];
         buf[0] = buf[1] = ptr;
-        if ((err = snd_pcm_writen (play->playback_handle,(void**) buf, amount)) == -EPIPE)
+
+        if ((err = snd_pcm_writen (play->playback_handle, (void**)buf, amount)) == -EPIPE)
 #else
+
         if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
 #endif
         {
@@ -242,8 +241,6 @@ void playsound(PCM_Play* play, int16_t* data, int count)
         start += amount;
     }
     printf("Wrote: %d shorts\n", start);
-    
- 
 }
 
 int16_t* recordsound(PCM_Capture* capture)

@@ -11,6 +11,7 @@ typedef struct {
     int max;
     
     int threshold; // the red threshold above which distortion occurs
+    
 } GGVUMeter;
 
 

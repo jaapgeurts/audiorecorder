@@ -22,6 +22,11 @@ int GGScreenGetWidth(GGScreen* screen);
 int GGScreenGetDepth(GGScreen* screen);
 
 void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget);
+void GGScreenGrabDPad(GGScreen* screen, GGWidget* widget);
+void GGScreenReleaseDPad(GGScreen* screen, GGWidget* widget);
+
+void GGScreenSetGrabDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback);
+void GGScreenSetReleaseDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback);
 
 TTF_Font* GGScreenSystemFont(GGScreen* screen);
 

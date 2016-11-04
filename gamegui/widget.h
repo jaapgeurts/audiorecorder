@@ -12,6 +12,8 @@ typedef struct GGWidget GGWidget;
 
 typedef bool (*GGEventFunc)(GGWidget* widget, SDL_Event* event);
 
+typedef void (*GGWidgetChangeFunc)(GGWidget* widget);
+
 struct GGWidget
 {
     int left;
@@ -31,6 +33,9 @@ struct GGWidget
 
     void (* render_func)(GGWidget* widget, SDL_Renderer* renderer);
     GGEventFunc handle_event_func;
+    
+    GGWidgetChangeFunc focus_gained_func;
+    GGWidgetChangeFunc focus_lost_func;
 };
 
 void GGWidgetInit(GGWidget* widget, int left, int top, int width, int height);

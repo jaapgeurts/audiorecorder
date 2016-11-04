@@ -41,7 +41,12 @@ struct GGScreen
 
     TTF_Font* system_font;
 
+    bool forward_dpad;
+
     void (* render_background_func)(SDL_Renderer* renderer);
+
+    GGWidgetChangeFunc grab_dpad_func;
+    GGWidgetChangeFunc release_dpad_func;
 };
 
 static void GGCleanUp(GGScreen* screen)
@@ -201,6 +206,8 @@ GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscre
 
     screen->render_background_func = GGInternalScreenClear;
 
+    screen->forward_dpad = false;
+
     return screen;
 }
 
@@ -269,22 +276,61 @@ void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
     {
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
+
+        if (widget->focus_gained_func != NULL)
+            widget->focus_gained_func(widget);
     }
     JGArrayListPush(screen->widgets, widget);
 }
 
 void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget)
 {
+    if (screen->focus_widget == widget)
+        return;
+
     if (widget->accepts_focus)
     {
         screen->focus_widget->has_focus = false;
+
+        if (screen->focus_widget->focus_lost_func != NULL)
+            screen->focus_widget->focus_lost_func(widget);
+
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
+
+        if (screen->focus_widget->focus_gained_func != NULL)
+            screen->focus_widget->focus_gained_func(widget);
     }
     else
     {
         fprintf(stderr, "Attempt to set focus to widget that doesn't accept it\n");
     }
+}
+
+void GGScreenGrabDPad(GGScreen* screen, GGWidget* widget)
+{
+    screen->forward_dpad = true;
+
+    if (screen->grab_dpad_func != NULL)
+        screen->grab_dpad_func(widget);
+}
+
+void GGScreenReleaseDPad(GGScreen* screen, GGWidget* widget)
+{
+    screen->forward_dpad = false;
+
+    if (screen->release_dpad_func != NULL)
+        screen->release_dpad_func(widget);
+}
+
+void GGScreenSetGrabDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback)
+{
+    screen->grab_dpad_func = callback;
+}
+
+void GGScreenSetReleaseDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback)
+{
+    screen->release_dpad_func = callback;
 }
 
 TTF_Font* GGScreenSystemFont(GGScreen* screen)
@@ -298,36 +344,54 @@ bool GGScreenHandleEvent(GGScreen* screen, SDL_Event* event)
     GGWidget* focus_widget = screen->focus_widget;
 
     /* if the DPad was pushed, find the closed widget and change focus */
-    if (event->type == SDL_KEYDOWN)
+    if (!screen->forward_dpad)
     {
-        switch (event->key.keysym.sym)
+        if (event->type == SDL_KEYUP && (
+                event->key.keysym.sym == NAVIGATE_UP ||
+                event->key.keysym.sym == NAVIGATE_DOWN ||
+                event->key.keysym.sym == NAVIGATE_LEFT ||
+                event->key.keysym.sym == NAVIGATE_RIGHT))
         {
-            case NAVIGATE_UP:
-                focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_UP);
-                break;
+            //swallow these keys
+            return true;
+        }
+        else if (event->type == SDL_KEYDOWN)
+        {
+            switch (event->key.keysym.sym)
+            {
+                case NAVIGATE_UP:
+                    focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_UP);
+                    break;
 
-            case NAVIGATE_DOWN:
-                focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_DOWN);
-                break;
+                case NAVIGATE_DOWN:
+                    focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_DOWN);
+                    break;
 
-            case NAVIGATE_LEFT:
-                focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_LEFT);
-                break;
+                case NAVIGATE_LEFT:
+                    focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_LEFT);
+                    break;
 
-            case NAVIGATE_RIGHT:
-                focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_RIGHT);
-                break;
+                case NAVIGATE_RIGHT:
+                    focus_widget = GGScreenFindFocusWidget(screen, focus_widget, DIR_RIGHT);
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
         }
     }
 
     if (focus_widget == NULL)
         return false;
 
-    GGScreenSetFocusWidget(screen, focus_widget);
-    
+    if (focus_widget != screen->focus_widget)
+    {
+        // another widget was selected. change focus and return
+        // ie. don't send dpad to newly focussed controller
+        GGScreenSetFocusWidget(screen, focus_widget);
+        return true;
+    }
+
     if (focus_widget->handle_event_func == NULL)
         return false;
 

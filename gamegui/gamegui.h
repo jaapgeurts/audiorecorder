@@ -11,6 +11,7 @@
 #include "button.h"
 #include "label.h"
 #include "imagebutton.h"
+#include "keymapping.h"
 
 #define UNUSED(x) (void)(x)
 

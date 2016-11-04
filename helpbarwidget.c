@@ -51,7 +51,12 @@ void GGHelpBarDestroy(GGHelpBar* helpbar)
 
 void GGHelpBarSetHelp(GGHelpBar* helpbar, GGHelpBarButton key, const char* text)
 {
-    helpbar->help_text[key] = strdup(text);
+    if (text == NULL)
+        helpbar->help_text[key] = NULL;
+    else
+        helpbar->help_text[key] = strdup(text);
+
+    helpbar->textures[key] = NULL;
 }
 
 static int max(int a, int b)
@@ -78,20 +83,19 @@ void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer)
 
         if (helpbar->textures[i] == NULL && helpbar->icons[i] != NULL)
         {
-            int          icon_spacing = 4;
-            int          padding      = 0;
-            
-        
+            int icon_spacing = 4;
+            int padding      = 0;
+
             // render the textures
             SDL_Surface* text_surface =
-                TTF_RenderText_Blended(GGScreenSystemFont(helpbar->screen), helpbar->help_text[i], white);
+                TTF_RenderUTF8_Blended(GGScreenSystemFont(helpbar->screen), helpbar->help_text[i], white);
             SDL_Surface* icon_surface  = helpbar->icons[i];
             int          w             = icon_surface->w + icon_spacing + text_surface->w + padding * 2;
             int          h             = max(icon_surface->h, text_surface->h) + padding;
             SDL_Surface* final_surface = SDL_CreateRGBSurface(0, w, h, GGScreenGetDepth(helpbar->screen), 0, 0, 0, 0);
             helpbar->help_rect[i].w = final_surface->w;
             helpbar->help_rect[i].h = final_surface->h;
-            SDL_FillRect(final_surface,NULL,0x2f2f2f);
+            SDL_FillRect(final_surface, NULL, 0x2f2f2f);
 
             SDL_Rect dstrect = {padding, padding, icon_surface->w, icon_surface->h};
             SDL_BlitSurface(icon_surface, NULL, final_surface, &dstrect);
@@ -106,14 +110,13 @@ void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer)
             helpbar->textures[i] = SDL_CreateTextureFromSurface(renderer, final_surface);
             SDL_FreeSurface(text_surface);
             SDL_FreeSurface(final_surface);
-            SDL_FreeSurface(helpbar->icons[i]);
-            helpbar->icons[i] = NULL;
+            // do not throw away icons, since we may need to render again
         }
         SDL_Rect dstrect = {
             helpbar->widget.left + x + 1,  helpbar->widget.top + y, helpbar->help_rect[i].w, helpbar->help_rect[i].h
         };
-//        printf("Rendering help: %s at, %d,%d,%d,%d\n", helpbar->help_text[i], dstrect.x, dstrect.y, dstrect.w,
-//            dstrect.h);
+        //        printf("Rendering help: %s at, %d,%d,%d,%d\n", helpbar->help_text[i], dstrect.x, dstrect.y, dstrect.w,
+        //            dstrect.h);
         SDL_RenderCopy(renderer, helpbar->textures[i], NULL, &dstrect);
         x +=  dstrect.w + help_spacing;
     }
