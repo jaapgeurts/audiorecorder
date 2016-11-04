@@ -3,14 +3,248 @@
 
 #include "audio.h"
 
-char* device = "default";
-
-void playsound(int16_t* data, int count)
+PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 {
     int                  err;
-    short*               buf;
-    snd_pcm_t*           playback_handle;
     snd_pcm_hw_params_t* hw_params;
+    PCM_Play*            play = calloc(1, sizeof(PCM_Play));
+
+#ifdef GCW0
+    int channels = 2;
+#else
+    int channels = 1;
+#endif
+
+    if ((err = snd_pcm_open (&(play->playback_handle), name, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
+    {
+        fprintf (stderr, "cannot open audio device %s (%s)\n", name, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot allocate hardware parameter structure (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_any (play->playback_handle, hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot initialize hardware parameter structure (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    // Access type if always interleaved
+    // It doens't affect mono recordings.
+#ifdef GCW0
+    snd_pcm_access_t access = SND_PCM_ACCESS_RW_NONINTERLEAVED;
+#else
+    snd_pcm_access_t access = SND_PCM_ACCESS_RW_INTERLEAVED;
+#endif
+    if ((err = snd_pcm_hw_params_set_access (play->playback_handle, hw_params, access)) < 0)
+    {
+        fprintf (stderr, "cannot set access type (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
+
+    if (depth == 8)
+        format = SND_PCM_FORMAT_U8;
+    else if (depth == 16)
+        format = SND_PCM_FORMAT_S16_LE;
+    else
+    {
+        fprintf(stderr, "Incorrect both depth. Legal values: 8 or 16\n");
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_format (play->playback_handle, hw_params, format)) < 0)
+    {
+        fprintf (stderr, "cannot set sample format (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_rate_near (play->playback_handle, hw_params, &rate, 0)) < 0)
+    {
+        fprintf (stderr, "cannot set sample rate %d, (%s)\n", rate, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_channels (play->playback_handle, hw_params, channels)) < 0)
+    {
+        fprintf (stderr, "cannot set channel count to %d (%s)\n", channels, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params (play->playback_handle, hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot set parameters (%s)\n",
+            snd_strerror (err));
+        return NULL;
+    }
+
+    snd_pcm_hw_params_get_period_size(hw_params, &(play->frames), 0);
+
+    play->frames *= 16;  //multiply by 16 it so that the buffer always has enough space
+
+    snd_pcm_hw_params_free (hw_params);
+
+    return play;
+}
+
+void playback_close(PCM_Play* play)
+{
+    snd_pcm_drain(play->playback_handle);
+
+    snd_pcm_close (play->playback_handle);
+
+    free(play);
+}
+
+PCM_Capture* capture_open(char* name, unsigned int rate,  int depth)
+{
+    int                  err;
+    PCM_Capture*         capture = calloc(1, sizeof(PCM_Capture));
+    snd_pcm_hw_params_t* hw_params;
+
+    int                  channels = 1;
+
+    if ((err = snd_pcm_open (&(capture->capture_handle), name, SND_PCM_STREAM_CAPTURE, 0)) < 0)
+    {
+        fprintf (stderr, "cannot open audio device %s (%s)\n", name, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot allocate hardware parameter structure (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_any (capture->capture_handle, hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot initialize hardware parameter structure (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    // Access type if always interleaved
+    // It doens't affect mono recordings.
+    if ((err = snd_pcm_hw_params_set_access (capture->capture_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
+    {
+        fprintf (stderr, "cannot set access type (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
+
+    if (depth == 8)
+        format = SND_PCM_FORMAT_U8;
+    else if (depth == 16)
+        format = SND_PCM_FORMAT_S16_LE;
+    else
+    {
+        fprintf(stderr, "Incorrect both depth. Legal values: 8 or 16\n");
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_format (capture->capture_handle, hw_params, format)) < 0)
+    {
+        fprintf (stderr, "cannot set sample format (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_rate_near (capture->capture_handle, hw_params, &rate, 0)) < 0)
+    {
+        fprintf (stderr, "cannot set sample rate %d (%s)\n", rate, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params_set_channels (capture->capture_handle, hw_params, channels)) < 0)
+    {
+        fprintf (stderr, "cannot set channel count %d (%s)\n", channels, snd_strerror (err));
+        return NULL;
+    }
+
+    if ((err = snd_pcm_hw_params (capture->capture_handle, hw_params)) < 0)
+    {
+        fprintf (stderr, "cannot set parameters (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    snd_pcm_hw_params_free (hw_params);
+
+    return capture;
+}
+
+void capture_close(PCM_Capture* capture)
+{
+    snd_pcm_close (capture->capture_handle);
+    free(capture);
+}
+
+void playsound_nonblock(PCM_Play* play, int16_t* data, int count)
+{
+    int err;
+    
+    /*    struct stat          st;
+     * 
+     *       stat("test.raw", &st);
+     *       unsigned long len = st.st_size / sizeof(short);
+     *       printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
+     * 
+     *       FILE* fp = fopen("test.raw", "r");
+     */
+    
+    if ((err = snd_pcm_prepare (play->playback_handle)) < 0)
+    {
+        fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
+        return;
+    }
+    
+    printf("before play\n");
+    
+    
+    int start = 0;
+    
+    while (start < count)
+    {
+        int amount = play->frames;
+        
+        if (start + amount >= count)
+            amount = count - start;
+        
+        printf(".");
+        fflush(stdout);
+        
+        //  GCW0 Driver doesn't take mono data, must send stereo, so send non interleaved
+        // and point both channels to the same array
+        
+        short* ptr = &data[start];
+        #ifdef GCW0
+        short* buf[2];
+        buf[0] = buf[1] = ptr;
+        if ((err = snd_pcm_writen (play->playback_handle,(void**) buf, amount)) == -EPIPE)
+            #else
+            if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
+                #endif
+            {
+                printf("Underrun \n");
+                snd_pcm_prepare (play->playback_handle);
+            }
+            else if (err < 0)
+            {
+                fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
+                return;
+            }
+            start += amount;
+    }
+    printf("Wrote: %d shorts\n", start);
+    
+}
+
+void playsound(PCM_Play* play, int16_t* data, int count)
+{
+    int err;
 
     /*    struct stat          st;
 
@@ -20,254 +254,104 @@ void playsound(int16_t* data, int count)
 
         FILE* fp = fopen("test.raw", "r");
      */
-    if ((err = snd_pcm_open (&playback_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
+
+    if ((err = snd_pcm_prepare (play->playback_handle)) < 0)
     {
-        fprintf (stderr, "cannot open audio device %s (%s)\n",
-            device,
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot allocate hardware parameter structure (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_any (playback_handle, hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot initialize hardware parameter structure (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_access (playback_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-    {
-        fprintf (stderr, "cannot set access type (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_format (playback_handle, hw_params, SND_PCM_FORMAT_S16_LE)) < 0)
-    {
-        fprintf (stderr, "cannot set sample format (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    unsigned int rate = 44100;
-
-    if ((err = snd_pcm_hw_params_set_rate_near (playback_handle, hw_params, &rate, 0)) < 0)
-    {
-        fprintf (stderr, "cannot set sample rate (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, 1)) < 0)
-    {
-        fprintf (stderr, "cannot set channel count (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params (playback_handle, hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot set parameters (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    snd_pcm_uframes_t frames;
-    snd_pcm_hw_params_get_period_size(hw_params, &frames, 0);
-
-    frames *= 16;  //multiply by 8 it so that the buffer always has enough
-    //  snd_pcm_hw_params_get_buffer_size(hw_params,&frames);
-
-    printf("Settin buffer: %lu\n", frames);
-
-    if (frames == 0)
-    {
-        fprintf(stderr, "Frames = 0");
-        exit(1);
-    }
-
-    buf = (short*)malloc(sizeof(short) * frames * 2);
-
-    snd_pcm_hw_params_free (hw_params);
-
-    if ((err = snd_pcm_prepare (playback_handle)) < 0)
-    {
-        fprintf (stderr, "cannot prepare audio interface for use (%s)\n",
-            snd_strerror (err));
-        exit (1);
+        fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
+        return;
     }
 
     printf("before play\n");
 
-    int  actual;
-    long total = 0;
-    int  start = 0;
-    int  loop  = 0;
-    do
+   
+    int start = 0;
+
+    while (start < count)
     {
-        start = loop * frames;
-        int i;
+        int amount = play->frames;
 
-        // copy into the buffer so we may interleave the data
-        for (i = 0; i < frames; i++)
+        if (start + amount >= count)
+            amount = count - start;
+
+        printf(".");
+        fflush(stdout);
+
+        //  GCW0 Driver doesn't take mono data, must send stereo, so send non interleaved
+        // and point both channels to the same array
+
+        short* ptr = &data[start];
+#ifdef GCW0
+        short* buf[2];
+        buf[0] = buf[1] = ptr;
+        if ((err = snd_pcm_writen (play->playback_handle,(void**) buf, amount)) == -EPIPE)
+#else
+        if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
+#endif
         {
-            if (start + i >= count)
-                break;
-            buf[i * 2]     = data[start + i];
-            buf[i * 2 + 1] = data[start + i];
+            printf("Underrun \n");
+            snd_pcm_prepare (play->playback_handle);
         }
-        loop++;
-        actual = i;
-        total += actual;
-
-        if (actual > 0)
+        else if (err < 0)
         {
-            printf(".");
-            fflush(stdout);
-
-            if ((err = snd_pcm_writei (playback_handle, buf, actual)) == -EPIPE)
-            {
-                printf("Underrun \n");
-                snd_pcm_prepare (playback_handle);
-            }
-            else if (err < 0)
-            {
-                fprintf (stderr, "write to audio interface failed (%s)\n",
-                    snd_strerror (err));
-                exit (1);
-            }
+            fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
+            return;
         }
+        start += amount;
     }
-    while (actual != 0);
-    printf("Wrote: %ld shorts\n", total);
+    printf("Wrote: %d shorts\n", start);
 
-    free(buf);
-
-    snd_pcm_drain(playback_handle);
-
-    snd_pcm_close (playback_handle);
 }
 
-int16_t* recordsound()
+int16_t* recordsound(PCM_Capture* capture)
 {
-    int                  i;
-    int                  err;
-    short*               buf;
-    int16_t*             result;
+    int      i;
+    int      err;
+    short*   buf;
+    int16_t* result;
 
-    snd_pcm_t*           capture_handle;
-    snd_pcm_hw_params_t* hw_params;
-
-    if ((err = snd_pcm_open (&capture_handle, device, SND_PCM_STREAM_CAPTURE, 0)) < 0)
-    {
-        fprintf (stderr, "cannot open audio device %s (%s)\n",
-            device,
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot allocate hardware parameter structure (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_any (capture_handle, hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot initialize hardware parameter structure (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_access (capture_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-    {
-        fprintf (stderr, "cannot set access type (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_format (capture_handle, hw_params, SND_PCM_FORMAT_S16_LE)) < 0)
-    {
-        fprintf (stderr, "cannot set sample format (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    unsigned int rate = 44100;
-
-    if ((err = snd_pcm_hw_params_set_rate_near (capture_handle, hw_params, &rate, 0)) < 0)
-    {
-        fprintf (stderr, "cannot set sample rate (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_channels (capture_handle, hw_params, 1)) < 0)
-    {
-        fprintf (stderr, "cannot set channel count (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    if ((err = snd_pcm_hw_params (capture_handle, hw_params)) < 0)
-    {
-        fprintf (stderr, "cannot set parameters (%s)\n",
-            snd_strerror (err));
-        exit (1);
-    }
-
-    snd_pcm_hw_params_free (hw_params);
-
-    if ((err = snd_pcm_prepare (capture_handle)) < 0)
+    if ((err = snd_pcm_prepare (capture->capture_handle)) < 0)
     {
         fprintf (stderr, "cannot prepare audio interface for use (%s)\n",
             snd_strerror (err));
-        exit (1);
+        return NULL;
     }
 
     snd_pcm_uframes_t frames   = 1024;
-    int               buf_size = sizeof(short) * frames * 2;
+    int               buf_size = sizeof(short) * frames;
     buf    = malloc(buf_size);
     result = (int16_t*)malloc(sizeof(int16_t) * frames * 500);
 
-    SF_INFO  info = {
-        .frames     = frames * 500 * 2, // two channels
-        .samplerate = 44100,
-        .channels   = 2,
-        .format     = SF_FORMAT_WAV | SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE,
-        .sections   = 0,
-        .seekable   = 0
-    };
+    //     SF_INFO info = {
+    //         .frames     = frames * 500 * 2, // two channels
+    //         .samplerate = 44100,
+    //         .channels   = 2,
+    //         .format     = SF_FORMAT_WAV | SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE,
+    //         .sections   = 0,
+    //         .seekable   = 0
+    //     };
 
-    SNDFILE* fp = sf_open("rec.wav", SFM_WRITE, &info);
+    //   SNDFILE* fp = sf_open("rec.wav", SFM_WRITE, &info);
 
     for (i = 0; i < 500; ++i)
     {
-        if ((err = snd_pcm_readi (capture_handle, buf, frames)) != frames)
+        if ((err = snd_pcm_readi (capture->capture_handle, buf, frames)) != frames)
         {
-            fprintf (stderr, "read from audio interface failed (%s)\n",
-                snd_strerror (err));
-            exit (1);
+            fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (err));
+            free(buf);
+            free(result);
+            return NULL;
         }
-        sf_write_short(fp, buf, frames * 2);
+        //   sf_write_short(fp, buf, frames * 2);
 
-        for (int j = 0; j < buf_size / 2; j++)
+        for (int j = 0; j < buf_size; j++)
         {
-            result[i * frames + j] = buf[j * 2];
+            result[i * frames + j] = buf[j];
         }
     }
+    free(buf);
 
-    sf_close(fp);
+    //  sf_close(fp);
 
-    snd_pcm_close (capture_handle);
     return result;
 }
 
@@ -298,6 +382,11 @@ Mixer* mixer_open(const char* name)
 void mixer_enable_capture(Mixer* mixer)
 {
     snd_mixer_selem_set_capture_switch(mixer->elem, SND_MIXER_SCHN_MONO, 1);
+}
+
+void mixer_set_volume(Mixer* mixer, int value)
+{
+    snd_mixer_selem_set_capture_volume(mixer->elem, SND_MIXER_SCHN_MONO, value);
 }
 
 void mixer_close(Mixer* mixer)

@@ -61,10 +61,8 @@ void GGImageButtonRender(GGWidget* widget, SDL_Renderer* renderer)
 {
     GGImageButton* button = (GGImageButton*)widget;
     
-    SDL_Color white = { 0xff, 0xff, 0xff, 0xff };
-    SDL_Color red   = {0xff, 0x00, 0x00, 0xff};
     
-    SDL_Color color = widget->has_focus ? red : white;
+    SDL_Color color = widget->has_focus ? widget->color_red : widget->color_gray;
     
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_Rect rect = {

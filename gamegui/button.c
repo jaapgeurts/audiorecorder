@@ -53,11 +53,7 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
 {
     GGButton* button = (GGButton*)widget;
 
-    SDL_Color white = { 0xff, 0xff, 0xff, 0xff };
-    SDL_Color gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
-    SDL_Color red   = {0xff, 0x00, 0x00, 0xff};
-
-    SDL_Color color = widget->has_focus ? red : gray;
+    SDL_Color color = widget->has_focus ? widget->color_red : widget->color_gray;
 
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_Rect rect = {
@@ -72,7 +68,7 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
     {
         // render only once
         // cache these variables
-        SDL_Surface* surface = TTF_RenderText_Blended(GGScreenSystemFont(button->screen), button->label, white);
+        SDL_Surface* surface = TTF_RenderText_Blended(GGScreenSystemFont(button->screen), button->label, widget->color_white);
         button->label_w = surface->w;
         button->label_h = surface->h;
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);

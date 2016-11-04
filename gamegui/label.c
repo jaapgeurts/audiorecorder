@@ -50,8 +50,6 @@ void GGLabelRender(GGWidget* widget, SDL_Renderer* renderer)
 {
     GGLabel* label = (GGLabel*)widget;
     
-    SDL_Color white = { 0xff, 0xff, 0xff, 0xff };
-   // SDL_Color gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
 
     SDL_Rect rect = {
         label->widget.left,
@@ -59,13 +57,9 @@ void GGLabelRender(GGWidget* widget, SDL_Renderer* renderer)
         label->widget.width,
         label->widget.height
     };
-/*    
-    SDL_Color color = gray;
-    
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 
-    SDL_RenderDrawRect(renderer, &rect);
-  */  
+    SDL_Color color = widget->color_white;
+    
     if (label->label_texture == NULL)
     {
         // render only once
@@ -74,7 +68,7 @@ void GGLabelRender(GGWidget* widget, SDL_Renderer* renderer)
         if (font == NULL)
             font = GGScreenSystemFont(label->screen);
         
-        SDL_Surface* surface = TTF_RenderText_Blended(font, label->label, white);
+        SDL_Surface* surface = TTF_RenderText_Blended(font, label->label, color);
         label->label_w = surface->w;
         label->label_h = surface->h;
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);

@@ -23,6 +23,11 @@ struct GGWidget
     bool accepts_focus;
     
     TTF_Font* font;
+    
+    SDL_Color color_white;
+    SDL_Color color_gray;
+    SDL_Color color_dark_gray;
+    SDL_Color color_red;  
 
     void (* render_func)(GGWidget* widget, SDL_Renderer* renderer);
     GGEventFunc handle_event_func;

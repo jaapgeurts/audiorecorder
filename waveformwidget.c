@@ -34,10 +34,11 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 {
     GGWaveform* wfw = (GGWaveform*)widget;
 
-    SDL_Color   c    = { 0x00, 0xff, 0x00, 0xff };
-    SDL_Color   gray = { 0xa0, 0xa0, 0xa0, 0xa0 };
+    
+    SDL_Color   green    = { 0x00, 0xff, 0x00, 0xff };
 
-    SDL_SetRenderDrawColor(renderer, gray.r, gray.g, gray.b, gray.a);
+
+    SDL_SetRenderDrawColor(renderer, widget->color_dark_gray.r, widget->color_dark_gray.g, widget->color_dark_gray.b, widget->color_dark_gray.a);
     SDL_Rect rect = {
         wfw->widget.left,
         wfw->widget.top,
@@ -46,7 +47,7 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
     };
     SDL_RenderDrawRect(renderer, &rect);
 
-    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    SDL_SetRenderDrawColor(renderer, green.r, green.g, green.b, green.a);
 
     float vs    = (widget->height - 2) / 65535.0;
     int   lasty = widget->top + (widget->height - 2) / 2;
