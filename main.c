@@ -76,6 +76,7 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     return true;
 }
 
+
 static bool on_play_click(GGWidget* widget, SDL_Event* event)
 {
 

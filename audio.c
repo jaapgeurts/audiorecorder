@@ -14,7 +14,8 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 #else
     int channels = 1;
 #endif
-
+    
+   
     if ((err = snd_pcm_open (&(play->playback_handle), name, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
     {
         fprintf (stderr, "cannot open audio device %s (%s)\n", name, snd_strerror (err));
@@ -182,65 +183,6 @@ void capture_close(PCM_Capture* capture)
     free(capture);
 }
 
-void playsound_nonblock(PCM_Play* play, int16_t* data, int count)
-{
-    int err;
-    
-    /*    struct stat          st;
-     * 
-     *       stat("test.raw", &st);
-     *       unsigned long len = st.st_size / sizeof(short);
-     *       printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
-     * 
-     *       FILE* fp = fopen("test.raw", "r");
-     */
-    
-    if ((err = snd_pcm_prepare (play->playback_handle)) < 0)
-    {
-        fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
-        return;
-    }
-    
-    printf("before play\n");
-    
-    
-    int start = 0;
-    
-    while (start < count)
-    {
-        int amount = play->frames;
-        
-        if (start + amount >= count)
-            amount = count - start;
-        
-        printf(".");
-        fflush(stdout);
-        
-        //  GCW0 Driver doesn't take mono data, must send stereo, so send non interleaved
-        // and point both channels to the same array
-        
-        short* ptr = &data[start];
-        #ifdef GCW0
-        short* buf[2];
-        buf[0] = buf[1] = ptr;
-        if ((err = snd_pcm_writen (play->playback_handle,(void**) buf, amount)) == -EPIPE)
-            #else
-            if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
-                #endif
-            {
-                printf("Underrun \n");
-                snd_pcm_prepare (play->playback_handle);
-            }
-            else if (err < 0)
-            {
-                fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
-                return;
-            }
-            start += amount;
-    }
-    printf("Wrote: %d shorts\n", start);
-    
-}
 
 void playsound(PCM_Play* play, int16_t* data, int count)
 {
@@ -261,8 +203,9 @@ void playsound(PCM_Play* play, int16_t* data, int count)
         return;
     }
 
+    
     printf("before play\n");
-
+    
    
     int start = 0;
 
@@ -299,7 +242,8 @@ void playsound(PCM_Play* play, int16_t* data, int count)
         start += amount;
     }
     printf("Wrote: %d shorts\n", start);
-
+    
+ 
 }
 
 int16_t* recordsound(PCM_Capture* capture)
