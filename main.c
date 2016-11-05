@@ -147,7 +147,7 @@ static void vumeter_volume_up(GGWidget* widget)
     if (current_volume > 1)
         current_volume = 1;
     mixer_set_volume(mixer_mic, current_volume);
-    GGVUMeterSetCurrent(vumeter, current_volume);
+    GGVUMeterSetVolume(vumeter, current_volume);
 }
 
 static void vumeter_volume_down(GGWidget* widget)
@@ -158,7 +158,7 @@ static void vumeter_volume_down(GGWidget* widget)
     if (current_volume < 0)
         current_volume = 0;
     mixer_set_volume(mixer_mic, current_volume);
-    GGVUMeterSetCurrent(vumeter, current_volume);
+    GGVUMeterSetVolume(vumeter, current_volume);
 }
 
 int main(int argc, char** argv)
@@ -201,7 +201,7 @@ int main(int argc, char** argv)
     GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
     mixer_mic = mixer_open(MIXER_MIC);
-    mixer_pcm = mixer_open(MIXER_PCM);
+   // mixer_pcm = mixer_open(MIXER_PCM);
 
     if (mixer_mic != NULL)
     {
@@ -218,7 +218,9 @@ int main(int argc, char** argv)
     GGScreenSetGrabDPadCallBack(screen, vumeter_grab_dpad);
     GGScreenSetReleaseDPadCallBack(screen, vumeter_release_dpad);
     float vol = mixer_volume(mixer_mic);
-    GGVUMeterSetCurrent(vumeter, vol);
+    GGVUMeterSetVolume(vumeter, vol);
+    
+    GGVUMeterSetCurrent(vumeter,1);
 
     // Helpbar
     helpbar1 = GGHelpBarCreate(screen);

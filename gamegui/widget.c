@@ -17,22 +17,36 @@
 
 void GGWidgetInit(GGWidget* widget, int left, int top,  int width, int height)
 {
-    widget->left        = left;
-    widget->top         = top;
-    widget->width       = width;
-    widget->height      = height;
-    widget->has_focus   = false;
+    widget->left          = left;
+    widget->top           = top;
+    widget->width         = width;
+    widget->height        = height;
+    widget->has_focus     = false;
     widget->accepts_focus = true;
-    widget->render_func = NULL;
-    
-    widget->color_white = (SDL_Color){ 0xff, 0xff, 0xff, 0xff };
-    widget->color_gray = (SDL_Color){ 0xa0, 0xa0, 0xa0, 0xff };
-    widget->color_dark_gray = (SDL_Color){ 0x40, 0x40, 0x40, 0xff };
-    widget->color_red = (SDL_Color){0xff, 0x00, 0x00, 0xff};
+    widget->render_func   = NULL;
+    widget->is_dirty      = true;
+
+    widget->color_white     = (SDL_Color){
+        0xff, 0xff, 0xff, 0xff
+    };
+    widget->color_gray      = (SDL_Color){
+        0xa0, 0xa0, 0xa0, 0xff
+    };
+    widget->color_dark_gray = (SDL_Color){
+        0x40, 0x40, 0x40, 0xff
+    };
+    widget->color_red       = (SDL_Color){
+        0xff, 0x00, 0x00, 0xff
+    };
 }
 
 /* Setting font to NULL reverts back to the system font */
 void GGWidgetSetFont(GGWidget* widget, TTF_Font* font)
 {
     widget->font = font;
+}
+
+void GGWidgetRepaint(GGWidget* widget)
+{
+    widget->is_dirty = true;
 }

@@ -248,16 +248,35 @@ void GGScreenRender(GGScreen* screen)
 
     // printf("Draw background\n");
     // clear the screen first
-    screen->render_background_func(screen->renderer);
+    bool screen_dirty = false;
 
+    // if at least one control is dirty then render all
     for (i = 0; i < count; i++)
     {
         GGWidget* widget = JGArrayListGet(screen->widgets, i);
 
-        widget->render_func(widget, screen->renderer);
+        if (widget->is_dirty)
+        {
+            screen_dirty = true;
+            break;
+        }
     }
 
-    SDL_RenderPresent(screen->renderer);
+    if (screen_dirty)
+    {
+        printf("Render cycle\n");
+        screen->render_background_func(screen->renderer);
+
+        for (i = 0; i < count; i++)
+        {
+            GGWidget* widget = JGArrayListGet(screen->widgets, i);
+
+            widget->render_func(widget, screen->renderer);
+            widget->is_dirty = false;
+        }
+
+        SDL_RenderPresent(screen->renderer);
+    }
 }
 
 void GGScreenClear(GGScreen* screen)
@@ -276,6 +295,8 @@ void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
     {
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
+        GGWidgetRepaint(screen->focus_widget);
+        
 
         if (widget->focus_gained_func != NULL)
             widget->focus_gained_func(widget);
@@ -291,13 +312,15 @@ void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget)
     if (widget->accepts_focus)
     {
         screen->focus_widget->has_focus = false;
-
+        GGWidgetRepaint(screen->focus_widget);
+        
         if (screen->focus_widget->focus_lost_func != NULL)
             screen->focus_widget->focus_lost_func(widget);
 
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
-
+        GGWidgetRepaint(screen->focus_widget);
+        
         if (screen->focus_widget->focus_gained_func != NULL)
             screen->focus_widget->focus_gained_func(widget);
     }

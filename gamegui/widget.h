@@ -24,6 +24,8 @@ struct GGWidget
     bool has_focus;
     bool accepts_focus;
     
+    bool is_dirty;
+    
     TTF_Font* font;
     
     SDL_Color color_white;
@@ -41,5 +43,7 @@ struct GGWidget
 void GGWidgetInit(GGWidget* widget, int left, int top, int width, int height);
 
 void GGWidgetSetFont(GGWidget* widget, TTF_Font* font);
+
+void GGWidgetRepaint(GGWidget* widget);
 
 #endif // WIDGET_H_INCLUDED

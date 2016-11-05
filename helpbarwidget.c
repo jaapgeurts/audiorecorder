@@ -57,6 +57,9 @@ void GGHelpBarSetHelp(GGHelpBar* helpbar, GGHelpBarButton key, const char* text)
         helpbar->help_text[key] = strdup(text);
 
     helpbar->textures[key] = NULL;
+    
+    GGWidgetRepaint((GGWidget*)helpbar);
+    
 }
 
 static int max(int a, int b)

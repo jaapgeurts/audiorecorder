@@ -98,4 +98,7 @@ void GGWaveformSetData(GGWaveform* wfw, int16_t* data, uint32_t count)
         wfw->samples[j] = 0;
         j++;
     }
+    
+    GGWidgetRepaint((GGWidget*)wfw);
+    
 }
