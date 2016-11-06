@@ -162,14 +162,16 @@ static void vumeter_grab_dpad(GGWidget* widget)
     // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
     GGHelpBarSetHelp(helpbar1, GCW_BTN_X, "Release");
     GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "^v Inc/Dec Level");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, "Inc/Dec Level");
 }
 
 static void vumeter_release_dpad(GGWidget* widget)
 {
     GGHelpBarSetHelp(helpbar1, GCW_BTN_X, NULL);
     GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, NULL);
 }
 
 static void vumeter_volume_up(GGWidget* widget)
@@ -263,7 +265,7 @@ int main(int argc, char** argv)
     // Helpbar
     helpbar1 = GGHelpBarCreate(screen);
     GGHelpBarSetHelp(helpbar1, GCW_BTN_A, "Record");
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD, "Navigate");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
     //    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELET, "Exit");
 
     // Set initial focus widget

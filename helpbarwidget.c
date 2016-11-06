@@ -7,7 +7,9 @@ char* icons_names[TOTAL_BUTTONS] = {
     "assets/btn_y.png",  // Y
     "assets/btn_select.png",  // SELET
     "assets/btn_start.png",  // START
-    "assets/btn_dpad.png",  // DPAD
+    "assets/btn_dpad_all.png",  // DPAD all dirs
+    "assets/btn_dpad_ud.png",  // DPAD  up/down
+    "assets/btn_dpad_lr.png",  // DPAD left/right
     "assets/btn_left.png",  // SHOULDER_LEFT
     "assets/btn_right.png",  // SHOULDER_RIGHT
 };
@@ -18,7 +20,7 @@ GGHelpBar* GGHelpBarCreate(GGScreen* screen)
 
     int        w          = GGScreenGetWidth(screen);
     int        h          = GGScreenGetHeight(screen);
-    int        bar_height = 23;
+    int        bar_height = 19;
 
     GGWidgetInit(&helpbar->widget, 0, h - bar_height, w, bar_height);
     helpbar->widget.render_func   = GGHelpBarRender;
@@ -115,7 +117,7 @@ void GGHelpBarRender(GGWidget* widget, SDL_Renderer* renderer)
             // do not throw away icons, since we may need to render again
         }
         SDL_Rect dstrect = {
-            helpbar->widget.left + x + 1,  helpbar->widget.top + y, helpbar->help_rect[i].w, helpbar->help_rect[i].h
+            helpbar->widget.left + x + 1,  helpbar->widget.top + y+1, helpbar->help_rect[i].w, helpbar->help_rect[i].h
         };
         //        printf("Rendering help: %s at, %d,%d,%d,%d\n", helpbar->help_text[i], dstrect.x, dstrect.y, dstrect.w,
         //            dstrect.h);

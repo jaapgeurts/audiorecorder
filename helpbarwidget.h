@@ -5,7 +5,7 @@
 
 #include "gamegui/gamegui.h"
 
-#define TOTAL_BUTTONS 9
+#define TOTAL_BUTTONS 11
 
 typedef enum
 {
@@ -15,7 +15,9 @@ typedef enum
     GCW_BTN_Y,
     GCW_BTN_SELECT,
     GCW_BTN_START,
-    GCW_BTN_DPAD,
+    GCW_BTN_DPAD_ALL,
+    GCW_BTN_DPAD_UD,
+    GCW_BTN_DPAD_LR,
     GCW_BTN_SHOULDER_LEFT,
     GCW_BTN_SHOULDER_RIGHT
 } GGHelpBarButton;
