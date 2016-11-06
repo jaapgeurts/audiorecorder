@@ -47,12 +47,11 @@ struct GGScreen
 
     GGWidgetChangeFunc grab_dpad_func;
     GGWidgetChangeFunc release_dpad_func;
-    
+
     GGScreenHookFunc pre_event_func;
     GGScreenHookFunc post_event_func;
     GGScreenHookFunc pre_render_func;
     GGScreenHookFunc post_render_func;
-    
 };
 
 static void GGCleanUp(GGScreen* screen)
@@ -295,33 +294,32 @@ void GGScreenSetBackgroundRenderFunc(GGScreen* screen, void (* render_func)(SDL_
     screen->render_background_func =  render_func;
 }
 
-void GGScreenSetPreEventFunc(GGScreen* screen,GGScreenHookFunc pre_event_func)
+void GGScreenSetPreEventFunc(GGScreen* screen, GGScreenHookFunc pre_event_func)
 {
     screen->pre_event_func = pre_event_func;
 }
 
-void GGScreenSetPostEventFunc(GGScreen* screen,GGScreenHookFunc post_event_func)
+void GGScreenSetPostEventFunc(GGScreen* screen, GGScreenHookFunc post_event_func)
 {
     screen->post_event_func = post_event_func;
 }
 
-void GGScreenSetPreRenderFunc(GGScreen* screen,GGScreenHookFunc pre_render_func)
+void GGScreenSetPreRenderFunc(GGScreen* screen, GGScreenHookFunc pre_render_func)
 {
     screen->pre_render_func = pre_render_func;
 }
 
-void GGScreenSetPostRenderFunc(GGScreen* screen,GGScreenHookFunc post_render_func)
+void GGScreenSetPostRenderFunc(GGScreen* screen, GGScreenHookFunc post_render_func)
 {
     screen->post_render_func = post_render_func;
 }
-
 
 void GGScreenHandlePreEventFunc(GGScreen* screen)
 {
     if (screen->pre_event_func != NULL)
         screen->pre_event_func(screen);
 }
-    
+
 void GGScreenHandlePostEventFunc(GGScreen* screen)
 {
     if (screen->post_event_func != NULL)
@@ -340,8 +338,6 @@ void GGScreenHandlePostRenderFunc(GGScreen* screen)
         screen->post_render_func(screen);
 }
 
-
-
 void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
 {
     if (screen->focus_widget == NULL && widget->accepts_focus)
@@ -349,7 +345,6 @@ void GGScreenAddWidget(GGScreen* screen, GGWidget* widget)
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
         GGWidgetRepaint(screen->focus_widget);
-        
 
         if (widget->focus_gained_func != NULL)
             widget->focus_gained_func(widget);
@@ -366,14 +361,14 @@ void GGScreenSetFocusWidget(GGScreen* screen, GGWidget* widget)
     {
         screen->focus_widget->has_focus = false;
         GGWidgetRepaint(screen->focus_widget);
-        
+
         if (screen->focus_widget->focus_lost_func != NULL)
             screen->focus_widget->focus_lost_func(widget);
 
         screen->focus_widget            = widget;
         screen->focus_widget->has_focus = true;
         GGWidgetRepaint(screen->focus_widget);
-        
+
         if (screen->focus_widget->focus_gained_func != NULL)
             screen->focus_widget->focus_gained_func(widget);
     }

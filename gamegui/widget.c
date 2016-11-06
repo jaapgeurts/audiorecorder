@@ -26,16 +26,16 @@ void GGWidgetInit(GGWidget* widget, int left, int top,  int width, int height)
     widget->render_func   = NULL;
     widget->is_dirty      = true;
 
-    widget->color_white     = (SDL_Color){
+    widget->color_white = (SDL_Color){
         0xff, 0xff, 0xff, 0xff
     };
-    widget->color_gray      = (SDL_Color){
+    widget->color_gray = (SDL_Color){
         0xa0, 0xa0, 0xa0, 0xff
     };
     widget->color_dark_gray = (SDL_Color){
         0x40, 0x40, 0x40, 0xff
     };
-    widget->color_red       = (SDL_Color){
+    widget->color_red = (SDL_Color){
         0xff, 0x00, 0x00, 0xff
     };
 }

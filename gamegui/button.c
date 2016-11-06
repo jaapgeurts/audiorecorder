@@ -26,15 +26,15 @@ struct GGButton
     SDL_Texture* label_texture;
     int          label_w;
     int          label_h;
-    
-    GGEventFunc  on_click;
+
+    GGEventFunc on_click;
 };
 
 static bool GGButtonHandleEvent(GGWidget* widget, SDL_Event* event);
 
 GGButton* GGButtonCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height)
 {
-    GGButton* btn = (GGButton*)calloc(1,sizeof(GGButton));
+    GGButton* btn = (GGButton*)calloc(1, sizeof(GGButton));
 
     GGWidgetInit(&btn->widget, left, top, width, height);
     btn->label                    = strdup(label);
@@ -68,7 +68,8 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
     {
         // render only once
         // cache these variables
-        SDL_Surface* surface = TTF_RenderText_Blended(GGScreenSystemFont(button->screen), button->label, widget->color_white);
+        SDL_Surface* surface = TTF_RenderText_Blended(GGScreenSystemFont(
+                    button->screen), button->label, widget->color_white);
         button->label_w = surface->w;
         button->label_h = surface->h;
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -102,8 +103,9 @@ static bool GGButtonHandleEvent(GGWidget* widget, SDL_Event* event)
         switch (event->key.keysym.sym)
         {
             case ACTION_PRIMARY:
+
                 if (button->on_click != NULL)
-                    handled = button->on_click(widget,event);
+                    handled = button->on_click(widget, event);
         }
     }
 

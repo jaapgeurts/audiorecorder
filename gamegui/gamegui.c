@@ -40,14 +40,14 @@ bool GGInit(int* argc, char*** argv)
         GGSetLastError("%s", SDL_GetError());
         return false;
     }
-    
+
     if (TTF_Init() != 0)
     {
         GGSetLastError("%s", SDL_GetError());
         SDL_Quit();
         return false;
     }
-    
+
     if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) != IMG_INIT_PNG)
     {
         TTF_Quit();
@@ -55,7 +55,7 @@ bool GGInit(int* argc, char*** argv)
         GGSetLastError("%s", SDL_GetError());
         return false;
     }
-    
+
     return true;
 }
 
@@ -94,7 +94,7 @@ int GGStart(GGScreen* screen)
         // message processing loop
         SDL_Event event;
 
-        GGScreenHandlePreEventFunc(screen);        
+        GGScreenHandlePreEventFunc(screen);
 
         while (SDL_PollEvent(&event))
         {
@@ -116,30 +116,33 @@ int GGStart(GGScreen* screen)
         GGScreenHandlePostEventFunc(screen);
 
         GGScreenHandlePreRenderFunc(screen);
-        
+
         // render all
         GGScreenRender(screen);
 
         GGScreenHandlePostRenderFunc(screen);
-        
+
         ticks = SDL_GetTicks() - ticks;
-        
-       // printf("Rendering & Event processing took %d milliseconds.\n",ticks);
+
+        // printf("Rendering & Event processing took %d milliseconds.\n",ticks);
 
         if (ticks < 1000 / FRAMERATE)
         {
             SDL_Delay(1000 / FRAMERATE - ticks);
-        } else  {
-            printf("Warning: framerate of %d not achieved. Actual: %d\n",FRAMERATE, 1000/ticks);
+        }
+        else
+        {
+            printf("Warning: framerate of %d not achieved. Actual: %d\n", FRAMERATE, 1000 / ticks);
         }
     } // end main loop
-    
+
     return 0;
 }
 
 void GGStop()
 {
     SDL_Event event;
+
     event.type = SDL_QUIT;
     SDL_PushEvent(&event);
 }

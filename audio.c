@@ -193,12 +193,12 @@ void capture_close(PCM_Capture* capture)
 bool play_ready(PCM_Play* play)
 {
     unsigned short revents;
-    
+
     // Do not block, set timeout to 0
-    poll(play->poll_desc,play->poll_count,0);
-        
+    poll(play->poll_desc, play->poll_count, 0);
+
     snd_pcm_poll_descriptors_revents(play->playback_handle, play->poll_desc, play->poll_count, &revents);
-    
+
     return (revents & POLLOUT) == POLLOUT;
 }
 

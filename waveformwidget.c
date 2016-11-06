@@ -34,11 +34,13 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 {
     GGWaveform* wfw = (GGWaveform*)widget;
 
-    
-    SDL_Color   green    = { 0x00, 0xff, 0x00, 0xff };
+    SDL_Color   green = { 0x00, 0xff, 0x00, 0xff };
 
-
-    SDL_SetRenderDrawColor(renderer, widget->color_dark_gray.r, widget->color_dark_gray.g, widget->color_dark_gray.b, widget->color_dark_gray.a);
+    SDL_SetRenderDrawColor(renderer,
+        widget->color_dark_gray.r,
+        widget->color_dark_gray.g,
+        widget->color_dark_gray.b,
+        widget->color_dark_gray.a);
     SDL_Rect rect = {
         wfw->widget.left,
         wfw->widget.top,
@@ -55,8 +57,8 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 
     for (int x = 0; x < widget->width - 2; x++)
     {
-        int y = widget->top + (widget->height-2) / 2 + (int)(wfw->samples[x] * vs);
-        SDL_RenderDrawLine(renderer, widget->left+lastx+1, lasty + 1, widget->left + x + 1, y + 1);
+        int y = widget->top + (widget->height - 2) / 2 + (int)(wfw->samples[x] * vs);
+        SDL_RenderDrawLine(renderer, widget->left + lastx + 1, lasty + 1, widget->left + x + 1, y + 1);
         lasty = y;
         lastx = x;
     }
@@ -64,13 +66,13 @@ void GGWaveformRender(GGWidget* widget, SDL_Renderer* renderer)
 
 void GGWaveformSetData(GGWaveform* wfw, int16_t* data, uint32_t count)
 {
-    int         maxdstsamples = wfw->widget.width - 2;       // -2 for a 1 pixel line at the borders
+    int maxdstsamples = wfw->widget.width - 2;               // -2 for a 1 pixel line at the borders
     // only ever display 10s worth of samples.
-    int         maxsrcsamples = 10 * 44100; // 10s * 44100KHz
-    int         step;
+    int maxsrcsamples = 10 * 44100;         // 10s * 44100KHz
+    int step;
 
-    int         takesrcsamples = maxsrcsamples;
-    int         putdstsamples  = maxdstsamples;
+    int takesrcsamples = maxsrcsamples;
+    int putdstsamples  = maxdstsamples;
 
     if (count < takesrcsamples)
         takesrcsamples = count;
@@ -98,7 +100,6 @@ void GGWaveformSetData(GGWaveform* wfw, int16_t* data, uint32_t count)
         wfw->samples[j] = 0;
         j++;
     }
-    
+
     GGWidgetRepaint((GGWidget*)wfw);
-    
 }
