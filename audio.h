@@ -4,6 +4,8 @@
 #include <alsa/asoundlib.h>
 #include <alsa/mixer.h>
 
+#include <stdbool.h>
+
 #define AUDIO_DEVICE "default"
 #ifdef GCW0
 #define MIXER_MIC        "Mic"
@@ -32,6 +34,8 @@ typedef struct
 {
     snd_pcm_t*        playback_handle;
     snd_pcm_uframes_t frames;
+    struct pollfd*    poll_desc;
+    int               poll_count;
 } PCM_Play;
 
 typedef struct
@@ -44,6 +48,8 @@ void playback_close(PCM_Play* play);
 
 PCM_Capture* capture_open(char* name, unsigned int rate, int depth);
 void capture_close(PCM_Capture* capture);
+
+bool play_ready(PCM_Play* play);
 
 void playsound(PCM_Play* play, int16_t* data, int count);
 int16_t* recordsound(PCM_Capture* capture);

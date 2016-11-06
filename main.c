@@ -24,23 +24,25 @@
 
 /* Define a few globals */
 
+/* AUDIO RELATED variables */
+PCM_Play*    play;
+// Default recording settings
+unsigned int sample_rate = 44100;
+int          bitdepth    = 16;
+Mixer*       mixer_mic   = NULL;
+Mixer*       mixer_pcm   = NULL;
+#define VOLUME_STEP 0.1
+
+int16_t* data              = NULL;
+int      audio_frames_sent = 0;
+float    current_volume    = 0.8;
+bool     playing           = false;
+
+/* UI Related variables */
+GGHelpBar*  helpbar1 = NULL;
 GGWaveform* wfw;
 
 SDL_Color   dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
-
-/**
- * Default recording settings
- */
-unsigned int sample_rate = 44100;
-int          bitdepth    = 16;
-
-int16_t*     data = NULL;
-
-GGHelpBar*   helpbar1       = NULL;
-Mixer*       mixer_mic          = NULL;
-Mixer*       mixer_pcm          = NULL;
-float        current_volume = 0.8;
-#define VOLUME_STEP 0.1
 
 static void render_bg(SDL_Renderer* renderer)
 {
@@ -82,9 +84,16 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     return true;
 }
 
+static void send_audio(PCM_Play* play,  int16_t* buf, int cnt)
+{
+    printf("Send next batch\n");
+    playsound(play, buf, cnt);
+    audio_frames_sent++;
+}
+
 static bool on_play_click(GGWidget* widget, SDL_Event* event)
 {
-    PCM_Play* play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
+    play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
 
     if (play == NULL)
     {
@@ -93,14 +102,38 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
     }
 
     printf("Start playback\n");
+    playing = true;
 
-    playsound(play, data, 1024 * 500);
+    audio_frames_sent = 0;
 
-    printf("playback done\n");
-
-    playback_close(play);
+    // Send inital frame
+    send_audio(play, &data[audio_frames_sent * 1024], 1024);
 
     return true;
+}
+
+void check_audio(GGScreen* screen)
+{
+    if (!playing)
+        return;
+
+    if (!play_ready(play))
+    {
+        printf("Play not ready\n");
+        return;
+    }
+
+    if (audio_frames_sent < 500)
+    {
+        send_audio(play, &data[audio_frames_sent * 1024], 1024);
+    }
+    else
+    {
+        playing = false;
+        printf("playback done\n");
+
+        playback_close(play);
+    }
 }
 
 static void new_filename(char* buf, int size)
@@ -142,6 +175,7 @@ static void vumeter_release_dpad(GGWidget* widget)
 static void vumeter_volume_up(GGWidget* widget)
 {
     GGVUMeter* vumeter = (GGVUMeter*)widget;
+
     current_volume += VOLUME_STEP;
 
     if (current_volume > 1)
@@ -153,8 +187,9 @@ static void vumeter_volume_up(GGWidget* widget)
 static void vumeter_volume_down(GGWidget* widget)
 {
     GGVUMeter* vumeter = (GGVUMeter*)widget;
+
     current_volume -= VOLUME_STEP;
-    
+
     if (current_volume < 0)
         current_volume = 0;
     mixer_set_volume(mixer_mic, current_volume);
@@ -173,7 +208,10 @@ int main(int argc, char** argv)
 
     screen = GGScreenCreate("Audio Recorder", WINDOW_WIDTH, WINDOW_HEIGHT, FULLSCREEN);
 
+    // Setup callbacks and hooks
     GGScreenSetBackgroundRenderFunc(screen, render_bg);
+
+    GGScreenSetPreEventFunc(screen, check_audio);
 
     GGLabel*  lbl_title = GGLabelCreate(screen, "GCW0 Audio Recorder", 10, 0, 70, 30);
     TTF_Font* font      = TTF_OpenFont("assets/DroidSans.ttf", 16);
@@ -201,7 +239,7 @@ int main(int argc, char** argv)
     GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
     mixer_mic = mixer_open(MIXER_MIC);
-   // mixer_pcm = mixer_open(MIXER_PCM);
+    // mixer_pcm = mixer_open(MIXER_PCM);
 
     if (mixer_mic != NULL)
     {
@@ -219,8 +257,8 @@ int main(int argc, char** argv)
     GGScreenSetReleaseDPadCallBack(screen, vumeter_release_dpad);
     float vol = mixer_volume(mixer_mic);
     GGVUMeterSetVolume(vumeter, vol);
-    
-    GGVUMeterSetCurrent(vumeter,1);
+
+    GGVUMeterSetCurrent(vumeter, 1);
 
     // Helpbar
     helpbar1 = GGHelpBarCreate(screen);

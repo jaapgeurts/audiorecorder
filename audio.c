@@ -90,6 +90,11 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 
     snd_pcm_hw_params_free (hw_params);
 
+    // Setup poll descriptors
+    play->poll_count = snd_pcm_poll_descriptors_count(play->playback_handle);
+    play->poll_desc  = calloc(play->poll_count, sizeof(struct pollfd));
+    snd_pcm_poll_descriptors(play->playback_handle, play->poll_desc, play->poll_count);
+
     return play;
 }
 
@@ -98,6 +103,8 @@ void playback_close(PCM_Play* play)
     snd_pcm_drain(play->playback_handle);
 
     snd_pcm_close (play->playback_handle);
+
+    free(play->poll_desc);
 
     free(play);
 }
@@ -181,6 +188,18 @@ void capture_close(PCM_Capture* capture)
 {
     snd_pcm_close (capture->capture_handle);
     free(capture);
+}
+
+bool play_ready(PCM_Play* play)
+{
+    unsigned short revents;
+    
+    // Do not block, set timeout to 0
+    poll(play->poll_desc,play->poll_count,0);
+        
+    snd_pcm_poll_descriptors_revents(play->playback_handle, play->poll_desc, play->poll_count, &revents);
+    
+    return (revents & POLLOUT) == POLLOUT;
 }
 
 void playsound(PCM_Play* play, int16_t* data, int count)
@@ -359,6 +378,6 @@ float mixer_volume(Mixer* mixer)
     else if (snd_mixer_selem_has_playback_channel(mixer->elem, SND_MIXER_SCHN_MONO))
         snd_mixer_selem_get_playback_volume(mixer->elem, SND_MIXER_SCHN_MONO, &val);
 
-  //  printf("Volume: %lu-%lu-%lu\n",mixer->volume_min,val,mixer->volume_max);
+    //  printf("Volume: %lu-%lu-%lu\n",mixer->volume_min,val,mixer->volume_max);
     return (val - mixer->volume_min) / (float)(mixer->volume_max - mixer->volume_min);
 }

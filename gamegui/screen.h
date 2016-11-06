@@ -10,6 +10,8 @@
 
 typedef struct GGScreen GGScreen;
 
+typedef void (*GGScreenHookFunc)(GGScreen* screen);
+
 GGScreen* GGScreenCreate(const char* title, int width, int height, bool fullscreen);
 void GGScreenDestroy(GGScreen* screen);
 void GGScreenRender(GGScreen* screen);
@@ -27,6 +29,16 @@ void GGScreenReleaseDPad(GGScreen* screen, GGWidget* widget);
 
 void GGScreenSetGrabDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback);
 void GGScreenSetReleaseDPadCallBack(GGScreen* screen, GGWidgetChangeFunc callback);
+
+void GGScreenSetPreEventFunc(GGScreen* screen,GGScreenHookFunc pre_event_func);
+void GGScreenSetPostEventFunc(GGScreen* screen,GGScreenHookFunc post_event_func);
+void GGScreenSetPreRenderFunc(GGScreen* screen,GGScreenHookFunc pre_render_func);
+void GGScreenSetPostRenderFunc(GGScreen* screen,GGScreenHookFunc post_render_func);
+
+void GGScreenHandlePreEventFunc(GGScreen* screen);
+void GGScreenHandlePostEventFunc(GGScreen* screen);
+void GGScreenHandlePreRenderFunc(GGScreen* screen);
+void GGScreenHandlePostRenderFunc(GGScreen* screen);
 
 TTF_Font* GGScreenSystemFont(GGScreen* screen);
 

@@ -94,6 +94,8 @@ int GGStart(GGScreen* screen)
         // message processing loop
         SDL_Event event;
 
+        GGScreenHandlePreEventFunc(screen);        
+
         while (SDL_PollEvent(&event))
         {
             // deliver the event to object that has focus
@@ -111,9 +113,15 @@ int GGStart(GGScreen* screen)
             // dispatch events
         } // end of message processing
 
+        GGScreenHandlePostEventFunc(screen);
+
+        GGScreenHandlePreRenderFunc(screen);
+        
         // render all
         GGScreenRender(screen);
 
+        GGScreenHandlePostRenderFunc(screen);
+        
         ticks = SDL_GetTicks() - ticks;
         
        // printf("Rendering & Event processing took %d milliseconds.\n",ticks);
@@ -121,6 +129,8 @@ int GGStart(GGScreen* screen)
         if (ticks < 1000 / FRAMERATE)
         {
             SDL_Delay(1000 / FRAMERATE - ticks);
+        } else  {
+            printf("Warning: framerate of %d not achieved. Actual: %d\n",FRAMERATE, 1000/ticks);
         }
     } // end main loop
     
