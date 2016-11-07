@@ -44,14 +44,16 @@ typedef struct
 } PCM_Capture;
 
 PCM_Play* playback_open(char* name, unsigned int rate, int depth);
+void playback_prepare(PCM_Play* play);
 void playback_close(PCM_Play* play);
 
 PCM_Capture* capture_open(char* name, unsigned int rate, int depth);
 void capture_close(PCM_Capture* capture);
 
-bool play_ready(PCM_Play* play);
+bool playback_ready(PCM_Play* play);
 
-void playsound(PCM_Play* play, int16_t* data, int count);
+bool  playback_play(PCM_Play* play, int16_t* data, int count);
+
 int16_t* recordsound(PCM_Capture* capture);
 
 Mixer* mixer_open(const char* name);

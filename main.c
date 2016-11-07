@@ -22,6 +22,9 @@
 
 #endif // GCW0
 
+enum { ERR_NO_AUDIO = 1, ERR_NO_MIXER, ERR_INIT_SDL }
+app_error_codes;
+
 /* Define a few globals */
 
 /* AUDIO RELATED variables */
@@ -37,6 +40,7 @@ int16_t* data              = NULL;
 int      audio_frames_sent = 0;
 float    current_volume    = 0.8;
 bool     playing           = false;
+int      frame_count       = 16;
 
 /* UI Related variables */
 GGHelpBar*  helpbar1 = NULL;
@@ -87,19 +91,14 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
 static void send_audio(PCM_Play* play,  int16_t* buf, int cnt)
 {
     printf("Send next batch\n");
-    playsound(play, buf, cnt);
-    audio_frames_sent++;
+
+    if (playback_play(play, buf, cnt))
+        audio_frames_sent++;
 }
 
 static bool on_play_click(GGWidget* widget, SDL_Event* event)
 {
-    play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
-
-    if (play == NULL)
-    {
-        printf("Can't open device %s for playback\n", PLAYBACK_DEVICE);
-        return true;
-    }
+    playback_prepare(play);
 
     printf("Start playback\n");
     playing = true;
@@ -107,7 +106,8 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
     audio_frames_sent = 0;
 
     // Send inital frame
-    send_audio(play, &data[audio_frames_sent * 1024], 1024);
+    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
+    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
 
     return true;
 }
@@ -117,22 +117,15 @@ void check_audio(GGScreen* screen)
     if (!playing)
         return;
 
-    if (!play_ready(play))
+    if (!playback_ready(play))
     {
-        printf("Play not ready\n");
+        printf("Play not ready for next batch\n");
         return;
     }
 
-    if (audio_frames_sent < 500)
+    if (audio_frames_sent  < (1024 * 500) / play->frames)
     {
-        send_audio(play, &data[audio_frames_sent * 1024], 1024);
-    }
-    else
-    {
-        playing = false;
-        printf("playback done\n");
-
-        playback_close(play);
+        send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
     }
 }
 
@@ -200,12 +193,31 @@ static void vumeter_volume_down(GGWidget* widget)
 
 int main(int argc, char** argv)
 {
+    play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
+
+    if (play == NULL)
+    {
+        printf("Can't open audio device %s for playback\n", PLAYBACK_DEVICE);
+        return ERR_NO_AUDIO;
+    }
+    mixer_mic = mixer_open(MIXER_MIC);
+
+    // mixer_pcm = mixer_open(MIXER_PCM);
+    if (mixer_mic == NULL)
+    {
+        printf("Can't open mixer %s for playback\n", PLAYBACK_DEVICE);
+        return ERR_NO_MIXER;
+    }
+
+    mixer_enable_capture(mixer_mic);
+    current_volume = mixer_volume(mixer_mic);
+
     GGScreen* screen;
 
     if (!GGInit(&argc, &argv))
     {
         fprintf(stderr, "Can't initialize (%s)\n", GGLastError());
-        return -1;
+        return ERR_INIT_SDL;
     }
 
     screen = GGScreenCreate("Audio Recorder", WINDOW_WIDTH, WINDOW_HEIGHT, FULLSCREEN);
@@ -240,15 +252,6 @@ int main(int argc, char** argv)
     GGImageButton* btn_replay = GGImageButtonCreate(screen, "assets/replay.png", 95, 130, 30, 30);
     GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
-    mixer_mic = mixer_open(MIXER_MIC);
-    // mixer_pcm = mixer_open(MIXER_PCM);
-
-    if (mixer_mic != NULL)
-    {
-        mixer_enable_capture(mixer_mic);
-        current_volume = mixer_volume(mixer_mic);
-    }
-
     // VU Meter
     GGVUMeter* vumeter = GGVUMeterCreate(screen, 280, 40, 30, 80);
     vumeter->widget.focus_gained_func = vumeter_focus_gained;
@@ -275,12 +278,13 @@ int main(int argc, char** argv)
 
     GGStart(screen);
 
-    if (mixer_mic)
-        mixer_close(mixer_mic);
-
     GGScreenDestroy(screen);
 
     GGQuit();
+
+    // These two can't be NULL or the program won't start
+    mixer_close(mixer_mic);
+    playback_close(play);
 
     if (data)
         free(data);

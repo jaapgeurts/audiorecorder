@@ -132,7 +132,12 @@ int GGStart(GGScreen* screen)
         }
         else
         {
-            printf("Warning: framerate of %d not achieved. Actual: %d\n", FRAMERATE, 1000 / ticks);
+            double rate = 1000.0/(float)ticks;
+            if (rate > 1)
+                printf("Warning: framerate of %d not achieved. Actual: %df/s\n", FRAMERATE, (int)rate);
+            else
+                printf("Warning: framerate of %d not achieved. Actual: %ds/f\n", FRAMERATE,(int)(1.0/rate));
+        
         }
     } // end main loop
 
