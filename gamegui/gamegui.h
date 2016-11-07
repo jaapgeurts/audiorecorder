@@ -10,6 +10,7 @@
 #include "screen.h"
 #include "button.h"
 #include "label.h"
+#include "helpbar.h"
 #include "imagebutton.h"
 #include "keymapping.h"
 

@@ -1,4 +1,4 @@
-#include "helpbarwidget.h"
+#include "helpbar.h"
 
 char* icons_names[TOTAL_BUTTONS] = {
     "assets/btn_a.png",  // A

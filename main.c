@@ -4,7 +4,6 @@
 
 #include "waveformwidget.h"
 #include "vumeter.h"
-#include "helpbarwidget.h"
 
 #include "audio.h"
 
@@ -22,7 +21,12 @@
 
 #endif // GCW0
 
-enum { ERR_NO_AUDIO = 1, ERR_NO_MIXER, ERR_INIT_SDL }
+enum
+{
+    ERR_NO_AUDIO = 1,
+    ERR_NO_MIXER,
+    ERR_INIT_SDL
+}
 app_error_codes;
 
 /* Define a few globals */
@@ -43,10 +47,20 @@ bool     playing           = false;
 int      frame_count       = 16;
 
 /* UI Related variables */
-GGHelpBar*  helpbar1 = NULL;
-GGWaveform* wfw;
+GGScreen*      screen = NULL;
+GGWaveform*    wfw;
+GGLabel*       lbl_title  = NULL;
+GGImageButton* btn_exit   = NULL;
+GGLabel*       lbl_file   = NULL;
+GGButton*      btn_new    = NULL;
+GGImageButton* btn_record = NULL;
+GGImageButton* btn_play   = NULL;
+GGImageButton* btn_replay = NULL;
+GGImageButton* btn_mic    = NULL;
+GGVUMeter*     vumeter    = NULL;
+GGHelpBar*     helpbar1   = NULL;
 
-SDL_Color   dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
+SDL_Color      dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
 
 static void render_bg(SDL_Renderer* renderer)
 {
@@ -103,8 +117,12 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
     printf("Start playback\n");
     playing = true;
 
-    audio_frames_sent = 0;
-
+    audio_frames_sent   = 0;
+    GGWidgetSetDisabled(btn_play,true);
+    GGWidgetSetDisabled(btn_record,true);
+    GGWidgetSetDisabled(btn_mic,true);
+    GGWidgetSetDisabled(btn_replay,true);
+    
     // Send inital frame
     send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
     send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
@@ -212,8 +230,6 @@ int main(int argc, char** argv)
     mixer_enable_capture(mixer_mic);
     current_volume = mixer_volume(mixer_mic);
 
-    GGScreen* screen;
-
     if (!GGInit(&argc, &argv))
     {
         fprintf(stderr, "Can't initialize (%s)\n", GGLastError());
@@ -227,33 +243,33 @@ int main(int argc, char** argv)
 
     GGScreenSetPreEventFunc(screen, check_audio);
 
-    GGLabel*  lbl_title = GGLabelCreate(screen, "GCW0 Audio Recorder", 10, 0, 70, 30);
-    TTF_Font* font      = TTF_OpenFont("assets/DroidSans.ttf", 16);
+    lbl_title = GGLabelCreate(screen, "GCW0 Audio Recorder", 10, 0, 70, 30);
+    TTF_Font* font = TTF_OpenFont("assets/DroidSans.ttf", 16);
     TTF_SetFontStyle(font, TTF_STYLE_BOLD);
     GGWidgetSetFont((GGWidget*)lbl_title, font);
 
-    GGImageButton* btn_exit = GGImageButtonCreate(screen, "assets/exit.png", 285, 5, 25, 25);
+    btn_exit = GGImageButtonCreate(screen, "assets/exit.png", 285, 5, 25, 25);
     GGImageButtonSetOnClickFunc(btn_exit, on_exit_click);
 
-    char      filename[50];
+    char filename[50];
     new_filename(filename, 50);
-    GGLabel*  lbl_file = GGLabelCreate(screen, filename, 10, 40, 260, 20);
+    lbl_file = GGLabelCreate(screen, filename, 10, 40, 260, 20);
 
-    GGButton* btn_new = GGButtonCreate(screen, "new", 230, 40, 40, 20);
+    btn_new = GGButtonCreate(screen, "new", 230, 40, 40, 20);
 
     wfw = GGWaveformCreate(screen, 10, 70, 260, 50);
 
-    GGImageButton* btn_record = GGImageButtonCreate(screen, "assets/record.png", 10, 130, 30, 30);
+    btn_record = GGImageButtonCreate(screen, "assets/record.png", 10, 130, 30, 30);
     GGImageButtonSetOnClickFunc(btn_record, on_record_click);
 
-    GGImageButton* btn_play = GGImageButtonCreate(screen, "assets/play.png", 55, 130, 30, 30);
+    btn_play = GGImageButtonCreate(screen, "assets/play.png", 55, 130, 30, 30);
     GGImageButtonSetOnClickFunc(btn_play, on_play_click);
 
-    GGImageButton* btn_replay = GGImageButtonCreate(screen, "assets/replay.png", 95, 130, 30, 30);
-    GGImageButton* btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
+    btn_replay = GGImageButtonCreate(screen, "assets/replay.png", 95, 130, 30, 30);
+    btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
 
     // VU Meter
-    GGVUMeter* vumeter = GGVUMeterCreate(screen, 280, 40, 30, 80);
+    vumeter                           = GGVUMeterCreate(screen, 280, 40, 30, 80);
     vumeter->widget.focus_gained_func = vumeter_focus_gained;
     vumeter->widget.focus_lost_func   = vumeter_focus_lost;
     vumeter->volume_up_func           = vumeter_volume_up;

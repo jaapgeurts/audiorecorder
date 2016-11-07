@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "gamegui/gamegui.h"
+#include "screen.h"
 
 #define TOTAL_BUTTONS 11
 

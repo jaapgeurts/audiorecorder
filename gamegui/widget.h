@@ -26,6 +26,8 @@ struct GGWidget
     
     bool is_dirty;
     
+    bool is_disabled;
+    
     TTF_Font* font;
     
     SDL_Color color_white;
@@ -43,6 +45,8 @@ struct GGWidget
 void GGWidgetInit(GGWidget* widget, int left, int top, int width, int height);
 
 void GGWidgetSetFont(GGWidget* widget, TTF_Font* font);
+void GGWidgetSetDisabled(GGWidget* widget,bool state);
+
 
 void GGWidgetRepaint(GGWidget* widget);
 
