@@ -55,11 +55,12 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
 
     SDL_Color color = widget->has_focus ? widget->color_red : widget->color_gray;
 
-    if (widget->is_disabled) {
+    if (widget->is_disabled)
+    {
         color.a = ALPHA_DISABLED;
-        SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     }
-    
+
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_Rect rect = {
         button->widget.left,
@@ -87,10 +88,14 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
         button->label_w,
         button->label_h
     };
-    if (widget->is_disabled) {
-        SDL_SetTextureAlphaMod(button->label_texture,ALPHA_DISABLED);
-    } else {
-        SDL_SetTextureAlphaMod(button->label_texture,0xff);
+
+    if (widget->is_disabled)
+    {
+        SDL_SetTextureAlphaMod(button->label_texture, ALPHA_DISABLED);
+    }
+    else
+    {
+        SDL_SetTextureAlphaMod(button->label_texture, 0xff);
     }
     SDL_RenderCopy(renderer, button->label_texture, NULL, &textrect);
 }
@@ -107,12 +112,13 @@ void GGButtonSetLabel(GGButton* button, const char* label)
 {
     if (button->label)
         free(button->label);
-    button->label                    = strdup(label);
-    
+    button->label = strdup(label);
+
     // invalidate current output
-    if (button->label_texture) {
+    if (button->label_texture)
+    {
         SDL_DestroyTexture(button->label_texture);
-       button->label_texture = NULL;
+        button->label_texture = NULL;
     }
     GGWidgetRepaint(&button->widget);
 }

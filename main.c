@@ -94,14 +94,17 @@ static void new_filename(char* buf, int size)
 static bool on_new_click(GGWidget* widget, SDL_Event* event)
 {
     GGButton* button = (GGButton*)widget;
-    if(data)
+    if(data) {
         free(data);
+        data = NULL;
+    }
     GGWidgetSetDisabled((GGWidget*)btn_play,true);
     GGWidgetSetDisabled((GGWidget*)btn_replay,true);
     GGWidgetSetDisabled((GGWidget*)btn_new,true);
     
     new_filename(output_filename, OUTPUT_FILENAME_SIZE);
-    GGButtonSetLabel(button, output_filename);
+    GGLabelSetLabel(lbl_file, output_filename);
+    GGScreenSetFocusWidget(screen,(GGWidget*)btn_record);
     
     return true;
 }

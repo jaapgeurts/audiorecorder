@@ -31,7 +31,7 @@ struct GGLabel
 GGLabel* GGLabelCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height)
 {
     GGLabel* lbl = (GGLabel*)calloc(1, sizeof(GGLabel));
-    
+
     if (label == NULL || strlen(label) <= 0)
         return NULL;
 
@@ -84,6 +84,21 @@ void GGLabelRender(GGWidget* widget, SDL_Renderer* renderer)
         label->label_h
     };
     SDL_RenderCopy(renderer, label->label_texture, NULL, &textrect);
+}
+
+void GGLabelSetLabel(GGLabel* label, const char* text)
+{
+    if (label->label)
+        free(label->label);
+    label->label = strdup(text);
+
+    // invalidate current output
+    if (label->label_texture)
+    {
+        SDL_DestroyTexture(label->label_texture);
+        label->label_texture = NULL;
+    }
+    GGWidgetRepaint(&label->widget);
 }
 
 void GGLabelDestroy(GGLabel* label)

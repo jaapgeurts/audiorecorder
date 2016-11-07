@@ -82,14 +82,14 @@ static void GGInternalScreenClear(SDL_Renderer* renderer)
 
 enum Direction { DIR_UP = 1, DIR_DOWN, DIR_LEFT, DIR_RIGHT };
 
-static int midpoint_x(GGWidget* widget)
+static int perpline_x(GGWidget* widget, int offset)
 {
-    return widget->left + widget->width / 2;
+    return widget->left + offset;
 }
 
-static int midpoint_y(GGWidget* widget)
+static int perpline_y(GGWidget* widget, int offset)
 {
-    return widget->top + widget->height / 2;
+    return widget->top + offset;
 }
 
 /* finds the next widget dependent on the direction */
@@ -100,59 +100,65 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
     int       x, y;
     GGWidget* candidate = NULL;
 
-    // get the midpoint of the widget
-    x = midpoint_x(current);
-    y = midpoint_y(current);
+    int       posx[3] = { 1, current->width / 2, current->width -1};
+    int       posy[3] = { 1, current->height / 2, current->height-1 };
 
-    for (i = 0; i < count; i++)
+    for (int pos = 0; pos < 3; pos++)
     {
-        GGWidget* cursor = JGArrayListGet(screen->widgets, i);
+        // get the midpoint of the widget
+        x = perpline_x(current, posx[pos]);
+        y = perpline_y(current, posy[pos]);
 
-        // exclude ourselves
-        if (cursor == current)
-            continue;
-
-        if (!cursor->accepts_focus || cursor->is_disabled)
-            continue;
-
-        // only look at controls in the correct direction
-        if ((dir == DIR_UP && midpoint_y(cursor) > y) ||
-            (dir == DIR_DOWN && midpoint_y(cursor) < y) ||
-            (dir == DIR_LEFT && midpoint_x(cursor) > x) ||
-            (dir == DIR_RIGHT && midpoint_x(cursor) < x))
-            continue;
-
-        if (dir == DIR_UP || dir == DIR_DOWN)
+        for (i = 0; i < count; i++)
         {
-            // is the cursor widget in line with the midpoint of the current widget
-            if (cursor->left < x && cursor->left + cursor->width > x)
+            GGWidget* cursor = JGArrayListGet(screen->widgets, i);
+
+            // exclude ourselves
+            if (cursor == current)
+                continue;
+
+            if (!cursor->accepts_focus || cursor->is_disabled)
+                continue;
+
+            // only look at controls in the correct direction
+            if ((dir == DIR_UP && perpline_y(cursor, posy[pos]) > y) ||
+                (dir == DIR_DOWN && perpline_y(cursor, posy[pos]) < y) ||
+                (dir == DIR_LEFT && perpline_x(cursor, posx[pos]) > x) ||
+                (dir == DIR_RIGHT && perpline_x(cursor, posx[pos]) < x))
+                continue;
+
+            if (dir == DIR_UP || dir == DIR_DOWN)
             {
-                // we found a candidate. Make sure it closest to the current
-                if (candidate == NULL)
+                // is the cursor widget in line with the perpendicular line of the current widget at pos
+                if (cursor->left < x && cursor->left + cursor->width > x)
                 {
-                    candidate = cursor;
-                }
-                else
-                {
-                    if (abs(midpoint_y(cursor) - y) <  abs(midpoint_y(candidate) - y))
+                    // we found a candidate. Make sure it closest to the current
+                    if (candidate == NULL)
+                    {
                         candidate = cursor;
+                    }
+                    else
+                    {
+                        if (abs(perpline_y(cursor, posy[pos]) - y) <  abs(perpline_y(candidate, posy[pos]) - y))
+                            candidate = cursor;
+                    }
                 }
             }
-        }
-        else
-        {
-            // is the cursor widget in line with the midpoint of the current widget
-            if (cursor->top < y && cursor->top + cursor->height > y)
+            else
             {
-                // we found a candidate. Make sure it closest to the current
-                if (candidate == NULL)
+                // is the cursor widget in line with the perpendicular line of the current widget at pos
+                if (cursor->top < y && cursor->top + cursor->height > y)
                 {
-                    candidate = cursor;
-                }
-                else
-                {
-                    if (abs(midpoint_x(cursor) - x) < abs(midpoint_x(candidate) - x))
+                    // we found a candidate. Make sure it closest to the current
+                    if (candidate == NULL)
+                    {
                         candidate = cursor;
+                    }
+                    else
+                    {
+                        if (abs(perpline_x(cursor, posx[pos]) - x) < abs(perpline_x(candidate, posx[pos]) - x))
+                            candidate = cursor;
+                    }
                 }
             }
         }

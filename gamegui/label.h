@@ -11,6 +11,6 @@ GGLabel* GGLabelCreate(GGScreen* screen, const char* label, int left, int top,  
 void GGLabelDestroy(GGLabel* button);
 
 void GGLabelRender(GGWidget* widget, SDL_Renderer* renderer);
-
+void GGLabelSetLabel(GGLabel* label, const char* text);
 
 #endif // BUTTON_H_INCLUDED
