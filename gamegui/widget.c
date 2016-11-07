@@ -50,6 +50,7 @@ void GGWidgetSetFont(GGWidget* widget, TTF_Font* font)
 void GGWidgetSetDisabled(GGWidget* widget,bool state)
 {
     widget->is_disabled = state;
+    widget->is_dirty = true;
 }
 
 void GGWidgetRepaint(GGWidget* widget)

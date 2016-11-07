@@ -11,6 +11,7 @@ GGButton* GGButtonCreate(GGScreen* screen, const char* label, int left, int top,
 void GGButtonDestroy(GGButton* button);
 
 void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer);
+void GGButtonSetLabel(GGButton* button, const char* label);
 
 void GGButtonSetOnClickFunc(GGButton* button, GGEventFunc on_click);
 

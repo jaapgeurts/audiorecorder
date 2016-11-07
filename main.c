@@ -30,9 +30,12 @@ enum
 app_error_codes;
 
 /* Define a few globals */
+#define OUTPUT_FILENAME_SIZE 50
+char output_filename[OUTPUT_FILENAME_SIZE];
 
 /* AUDIO RELATED variables */
 PCM_Play*    play;
+
 // Default recording settings
 unsigned int sample_rate = 44100;
 int          bitdepth    = 16;
@@ -76,6 +79,33 @@ static bool on_exit_click(GGWidget* widget, SDL_Event* event)
     return true;
 }
 
+
+static void new_filename(char* buf, int size)
+{
+    time_t     rawtime;
+    struct tm* timeinfo;
+    
+    time (&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
+}
+
+
+static bool on_new_click(GGWidget* widget, SDL_Event* event)
+{
+    GGButton* button = (GGButton*)widget;
+    if(data)
+        free(data);
+    GGWidgetSetDisabled((GGWidget*)btn_play,true);
+    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
+    GGWidgetSetDisabled((GGWidget*)btn_new,true);
+    
+    new_filename(output_filename, OUTPUT_FILENAME_SIZE);
+    GGButtonSetLabel(button, output_filename);
+    
+    return true;
+}
+
 static bool on_record_click(GGWidget* widget, SDL_Event* event)
 {
     PCM_Capture* capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
@@ -98,6 +128,9 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     capture_close(capture);
 
     GGWaveformSetData(wfw, data, 1024 * 500);
+    
+    GGWidgetSetDisabled((GGWidget*)btn_play,false);
+    GGWidgetSetDisabled((GGWidget*)btn_new,false);
 
     return true;
 }
@@ -118,10 +151,10 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
     playing = true;
 
     audio_frames_sent   = 0;
-    GGWidgetSetDisabled(btn_play,true);
-    GGWidgetSetDisabled(btn_record,true);
-    GGWidgetSetDisabled(btn_mic,true);
-    GGWidgetSetDisabled(btn_replay,true);
+    GGWidgetSetDisabled((GGWidget*)btn_play,true);
+    GGWidgetSetDisabled((GGWidget*)btn_record,true);
+    GGWidgetSetDisabled((GGWidget*)btn_mic,true);
+    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
     
     // Send inital frame
     send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
@@ -145,16 +178,6 @@ void check_audio(GGScreen* screen)
     {
         send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
     }
-}
-
-static void new_filename(char* buf, int size)
-{
-    time_t     rawtime;
-    struct tm* timeinfo;
-
-    time (&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
 }
 
 static void vumeter_focus_gained(GGWidget* widget)
@@ -251,11 +274,11 @@ int main(int argc, char** argv)
     btn_exit = GGImageButtonCreate(screen, "assets/exit.png", 285, 5, 25, 25);
     GGImageButtonSetOnClickFunc(btn_exit, on_exit_click);
 
-    char filename[50];
-    new_filename(filename, 50);
-    lbl_file = GGLabelCreate(screen, filename, 10, 40, 260, 20);
+    new_filename(output_filename, OUTPUT_FILENAME_SIZE);
+    lbl_file = GGLabelCreate(screen, output_filename, 10, 40, 260, 20);
 
     btn_new = GGButtonCreate(screen, "new", 230, 40, 40, 20);
+    GGButtonSetOnClickFunc(btn_new,on_new_click);
 
     wfw = GGWaveformCreate(screen, 10, 70, 260, 50);
 
@@ -287,9 +310,12 @@ int main(int argc, char** argv)
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
     //    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELET, "Exit");
 
-    // Set initial focus widget
+    // Set initial widget states
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
-
+    GGWidgetSetDisabled((GGWidget*)btn_play,true);
+    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
+    GGWidgetSetDisabled((GGWidget*)btn_new,true);
+    
     // playsound();
 
     GGStart(screen);

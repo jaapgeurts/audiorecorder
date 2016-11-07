@@ -66,9 +66,8 @@ void GGImageButtonRender(GGWidget* widget, SDL_Renderer* renderer)
     SDL_Color      color = widget->has_focus ? widget->color_red : widget->color_gray;
     
     if (widget->is_disabled) {
-        color.a = 0x40;
+        color.a = ALPHA_DISABLED;
         SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-        SDL_SetTextureAlphaMod(renderer,0x40);
     }
     
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
@@ -95,6 +94,11 @@ void GGImageButtonRender(GGWidget* widget, SDL_Renderer* renderer)
         button->icon_h
     };
     
+    if (widget->is_disabled) {
+        SDL_SetTextureAlphaMod(button->icon_texture,ALPHA_DISABLED);
+    } else {
+        SDL_SetTextureAlphaMod(button->icon_texture,0xff);
+    }
     SDL_RenderCopy(renderer, button->icon_texture, NULL, &iconrect);
 }
 

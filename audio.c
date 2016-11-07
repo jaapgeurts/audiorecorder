@@ -267,11 +267,12 @@ bool playback_play(PCM_Play* play, int16_t* data, int count)
         else if (err < 0)
         {
             fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
-            return;
+            return false;
         }
         start += amount;
     }
     printf("Wrote: %d shorts\n", start);
+    return true;
 }
 
 int16_t* recordsound(PCM_Capture* capture)

@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#define ALPHA_DISABLED 0x15
+
 #include "widget.h"
 
 typedef struct GGScreen GGScreen;

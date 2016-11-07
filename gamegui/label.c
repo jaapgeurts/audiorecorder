@@ -31,6 +31,9 @@ struct GGLabel
 GGLabel* GGLabelCreate(GGScreen* screen, const char* label, int left, int top,  int width, int height)
 {
     GGLabel* lbl = (GGLabel*)calloc(1, sizeof(GGLabel));
+    
+    if (label == NULL || strlen(label) <= 0)
+        return NULL;
 
     GGWidgetInit(&lbl->widget, left, top, width, height);
     lbl->label                = strdup(label);
