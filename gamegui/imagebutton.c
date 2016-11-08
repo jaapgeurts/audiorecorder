@@ -61,11 +61,15 @@ GGImageButton* GGImageButtonCreate(GGScreen* screen, const char* filename, int l
 
 void GGImageButtonRender(GGWidget* widget, SDL_Renderer* renderer)
 {
-    GGImageButton* button = (GGImageButton*)widget;
 
+    if (!widget->is_visible)
+        return;
+    
+    GGImageButton* button = (GGImageButton*)widget;
+    
     SDL_Color      color = widget->has_focus ? widget->color_red : widget->color_gray;
     
-    if (widget->is_disabled) {
+    if (!widget->is_enabled) {
         color.a = ALPHA_DISABLED;
         SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     }
@@ -94,7 +98,7 @@ void GGImageButtonRender(GGWidget* widget, SDL_Renderer* renderer)
         button->icon_h
     };
     
-    if (widget->is_disabled) {
+    if (!widget->is_enabled) {
         SDL_SetTextureAlphaMod(button->icon_texture,ALPHA_DISABLED);
     } else {
         SDL_SetTextureAlphaMod(button->icon_texture,0xff);

@@ -55,7 +55,7 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
 
     SDL_Color color = widget->has_focus ? widget->color_red : widget->color_gray;
 
-    if (widget->is_disabled)
+    if (!widget->is_enabled)
     {
         color.a = ALPHA_DISABLED;
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -89,7 +89,7 @@ void GGButtonRender(GGWidget* widget, SDL_Renderer* renderer)
         button->label_h
     };
 
-    if (widget->is_disabled)
+    if (!widget->is_enabled)
     {
         SDL_SetTextureAlphaMod(button->label_texture, ALPHA_DISABLED);
     }

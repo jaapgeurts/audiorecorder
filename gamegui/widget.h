@@ -25,8 +25,8 @@ struct GGWidget
     bool accepts_focus;
     
     bool is_dirty;
-    
-    bool is_disabled;
+    bool is_enabled;
+    bool is_visible;
     
     TTF_Font* font;
     
@@ -45,7 +45,8 @@ struct GGWidget
 void GGWidgetInit(GGWidget* widget, int left, int top, int width, int height);
 
 void GGWidgetSetFont(GGWidget* widget, TTF_Font* font);
-void GGWidgetSetDisabled(GGWidget* widget,bool state);
+void GGWidgetSetEnabled(GGWidget* widget,bool state);
+void GGWidgetSetVisible(GGWidget* widget, bool state);
 
 
 void GGWidgetRepaint(GGWidget* widget);

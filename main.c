@@ -34,7 +34,7 @@ app_error_codes;
 char output_filename[OUTPUT_FILENAME_SIZE];
 
 /* AUDIO RELATED variables */
-PCM_Play*    play;
+PCM_Play* play;
 
 // Default recording settings
 unsigned int sample_rate = 44100;
@@ -58,6 +58,7 @@ GGLabel*       lbl_file   = NULL;
 GGButton*      btn_new    = NULL;
 GGImageButton* btn_record = NULL;
 GGImageButton* btn_play   = NULL;
+GGImageButton* btn_stop   = NULL;
 GGImageButton* btn_replay = NULL;
 GGImageButton* btn_mic    = NULL;
 GGVUMeter*     vumeter    = NULL;
@@ -65,6 +66,7 @@ GGHelpBar*     helpbar1   = NULL;
 
 SDL_Color      dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
 
+/** UI FUNCTIONS **/
 static void render_bg(SDL_Renderer* renderer)
 {
     // printf("Rendering background\n");
@@ -79,108 +81,33 @@ static bool on_exit_click(GGWidget* widget, SDL_Event* event)
     return true;
 }
 
-
 static void new_filename(char* buf, int size)
 {
     time_t     rawtime;
     struct tm* timeinfo;
-    
+
     time (&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
 }
 
-
 static bool on_new_click(GGWidget* widget, SDL_Event* event)
 {
     GGButton* button = (GGButton*)widget;
-    if(data) {
+
+    if (data)
+    {
         free(data);
         data = NULL;
     }
-    GGWidgetSetDisabled((GGWidget*)btn_play,true);
-    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
-    GGWidgetSetDisabled((GGWidget*)btn_new,true);
-    
+    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
+    GGWidgetSetEnabled((GGWidget*)btn_new, true);
+
     new_filename(output_filename, OUTPUT_FILENAME_SIZE);
     GGLabelSetLabel(lbl_file, output_filename);
-    GGScreenSetFocusWidget(screen,(GGWidget*)btn_record);
-    
-    return true;
-}
-
-static bool on_record_click(GGWidget* widget, SDL_Event* event)
-{
-    PCM_Capture* capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
-
-    if (capture == NULL)
-    {
-        printf("Can't open device '%s' for capture\n", CAPTURE_DEVICE);
-        return true;
-    }
-
-    printf("Start recording\n");
-
-    if (data)
-        free(data);
-
-    data = recordsound(capture);
-
-    printf("Recording done\n");
-
-    capture_close(capture);
-
-    GGWaveformSetData(wfw, data, 1024 * 500);
-    
-    GGWidgetSetDisabled((GGWidget*)btn_play,false);
-    GGWidgetSetDisabled((GGWidget*)btn_new,false);
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
 
     return true;
-}
-
-static void send_audio(PCM_Play* play,  int16_t* buf, int cnt)
-{
-    printf("Send next batch\n");
-
-    if (playback_play(play, buf, cnt))
-        audio_frames_sent++;
-}
-
-static bool on_play_click(GGWidget* widget, SDL_Event* event)
-{
-    playback_prepare(play);
-
-    printf("Start playback\n");
-    playing = true;
-
-    audio_frames_sent   = 0;
-    GGWidgetSetDisabled((GGWidget*)btn_play,true);
-    GGWidgetSetDisabled((GGWidget*)btn_record,true);
-    GGWidgetSetDisabled((GGWidget*)btn_mic,true);
-    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
-    
-    // Send inital frame
-    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-
-    return true;
-}
-
-void check_audio(GGScreen* screen)
-{
-    if (!playing)
-        return;
-
-    if (!playback_ready(play))
-    {
-        printf("Play not ready for next batch\n");
-        return;
-    }
-
-    if (audio_frames_sent  < (1024 * 500) / play->frames)
-    {
-        send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-    }
 }
 
 static void vumeter_focus_gained(GGWidget* widget)
@@ -209,6 +136,118 @@ static void vumeter_release_dpad(GGWidget* widget)
     GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
     GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, NULL);
+}
+
+/** AUDIO FUNCTIONS **/
+
+static bool on_record_stop(GGWidget* widget, SDL_Event* event)
+{
+    GGWidgetSetVisible((GGWidget*)btn_play, true);
+    GGWidgetSetVisible((GGWidget*)btn_stop, false);
+
+    GGWidgetSetEnabled((GGWidget*)btn_new, false);
+    GGWidgetSetEnabled((GGWidget*)btn_play, true);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
+
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
+    return true;
+}
+
+static bool on_record_click(GGWidget* widget, SDL_Event* event)
+{
+    PCM_Capture* capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
+
+    if (capture == NULL)
+    {
+        printf("Can't open device '%s' for capture\n", CAPTURE_DEVICE);
+        return true;
+    }
+
+    printf("Start recording\n");
+
+    if (data)
+        free(data);
+
+    GGWidgetSetVisible((GGWidget*)btn_play, false);
+    GGWidgetSetVisible((GGWidget*)btn_stop, true);
+    GGWidgetSetEnabled((GGWidget*)btn_record, false);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
+    GGImageButtonSetOnClickFunc(btn_stop, on_record_stop);
+
+    data = recordsound(capture);
+
+    printf("Recording done\n");
+
+    capture_close(capture);
+
+    on_record_stop(widget, event);
+
+    GGWaveformSetData(wfw, data, 1024 * 500);
+
+    return true;
+}
+
+static bool on_play_stop(GGWidget* widget, SDL_Event* event)
+{
+    GGWidgetSetVisible((GGWidget*)btn_play, true);
+    GGWidgetSetVisible((GGWidget*)btn_stop, false);
+
+    GGWidgetSetEnabled((GGWidget*)btn_new, true);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
+    
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
+
+    return true;
+}
+
+static void send_audio(PCM_Play* play,  int16_t* buf, int cnt)
+{
+    printf("Send next batch\n");
+
+    if (playback_play(play, buf, cnt))
+        audio_frames_sent++;
+}
+
+static bool on_play_click(GGWidget* widget, SDL_Event* event)
+{
+    playback_prepare(play);
+
+    printf("Start playback\n");
+    playing = true;
+
+    audio_frames_sent = 0;
+    GGWidgetSetVisible((GGWidget*)btn_play, false);
+    GGWidgetSetVisible((GGWidget*)btn_stop, true);
+    GGImageButtonSetOnClickFunc(btn_stop, on_play_stop);
+
+    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
+    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
+
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
+
+    // Send inital frame
+    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
+    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
+
+    return true;
+}
+
+void check_audio(GGScreen* screen)
+{
+    if (!playing)
+        return;
+
+    if (!playback_ready(play))
+    {
+        printf("Play not ready for next batch\n");
+        return;
+    }
+
+    if (audio_frames_sent  < (1024 * 500) / play->frames)
+    {
+        send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
+    }
 }
 
 static void vumeter_volume_up(GGWidget* widget)
@@ -281,7 +320,7 @@ int main(int argc, char** argv)
     lbl_file = GGLabelCreate(screen, output_filename, 10, 40, 260, 20);
 
     btn_new = GGButtonCreate(screen, "new", 230, 40, 40, 20);
-    GGButtonSetOnClickFunc(btn_new,on_new_click);
+    GGButtonSetOnClickFunc(btn_new, on_new_click);
 
     wfw = GGWaveformCreate(screen, 10, 70, 260, 50);
 
@@ -290,6 +329,9 @@ int main(int argc, char** argv)
 
     btn_play = GGImageButtonCreate(screen, "assets/play.png", 55, 130, 30, 30);
     GGImageButtonSetOnClickFunc(btn_play, on_play_click);
+
+    btn_stop = GGImageButtonCreate(screen, "assets/stop.png", 55, 130, 30, 30);
+    GGWidgetSetVisible((GGWidget*)btn_stop, false);
 
     btn_replay = GGImageButtonCreate(screen, "assets/replay.png", 95, 130, 30, 30);
     btn_mic    = GGImageButtonCreate(screen, "assets/mic.png", 280, 130, 30, 30);
@@ -315,10 +357,10 @@ int main(int argc, char** argv)
 
     // Set initial widget states
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
-    GGWidgetSetDisabled((GGWidget*)btn_play,true);
-    GGWidgetSetDisabled((GGWidget*)btn_replay,true);
-    GGWidgetSetDisabled((GGWidget*)btn_new,true);
-    
+    GGWidgetSetEnabled((GGWidget*)btn_play, false);
+    GGWidgetSetEnabled((GGWidget*)btn_replay, false);
+    GGWidgetSetEnabled((GGWidget*)btn_new, false);
+
     // playsound();
 
     GGStart(screen);

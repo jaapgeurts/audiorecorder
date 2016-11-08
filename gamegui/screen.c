@@ -117,7 +117,7 @@ static GGWidget* GGScreenFindFocusWidget(GGScreen* screen, GGWidget* current, en
             if (cursor == current)
                 continue;
 
-            if (!cursor->accepts_focus || cursor->is_disabled)
+            if (!cursor->accepts_focus || !cursor->is_enabled || !cursor->is_visible)
                 continue;
 
             // only look at controls in the correct direction

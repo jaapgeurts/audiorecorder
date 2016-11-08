@@ -25,7 +25,8 @@ void GGWidgetInit(GGWidget* widget, int left, int top,  int width, int height)
     widget->accepts_focus = true;
     widget->render_func   = NULL;
     widget->is_dirty      = true;
-    widget->is_disabled   = false;
+    widget->is_enabled    = true;
+    widget->is_visible    = true;
 
     widget->color_white = (SDL_Color){
         0xff, 0xff, 0xff, 0xff
@@ -47,10 +48,16 @@ void GGWidgetSetFont(GGWidget* widget, TTF_Font* font)
     widget->font = font;
 }
 
-void GGWidgetSetDisabled(GGWidget* widget,bool state)
+void GGWidgetSetEnabled(GGWidget* widget, bool state)
 {
-    widget->is_disabled = state;
-    widget->is_dirty = true;
+    widget->is_enabled = state;
+    widget->is_dirty    = true;
+}
+
+void GGWidgetSetVisible(GGWidget* widget, bool state)
+{
+    widget->is_visible = state;
+    widget->is_dirty   = true;
 }
 
 void GGWidgetRepaint(GGWidget* widget)
