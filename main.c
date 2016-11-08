@@ -197,6 +197,8 @@ static bool on_play_stop(GGWidget* widget, SDL_Event* event)
     GGWidgetSetEnabled((GGWidget*)btn_mic, true);
     
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
+    
+    playback_stop(play);
 
     return true;
 }

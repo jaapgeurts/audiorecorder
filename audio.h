@@ -53,6 +53,7 @@ void capture_close(PCM_Capture* capture);
 bool playback_ready(PCM_Play* play);
 
 bool  playback_play(PCM_Play* play, int16_t* data, int count);
+void playback_stop(PCM_Play* play);
 
 int16_t* recordsound(PCM_Capture* capture);
 

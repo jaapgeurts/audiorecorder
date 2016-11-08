@@ -275,6 +275,12 @@ bool playback_play(PCM_Play* play, int16_t* data, int count)
     return true;
 }
 
+void playback_stop(PCM_Play* play)
+{
+    snd_pcm_drop(play->playback_handle);
+}
+
+
 int16_t* recordsound(PCM_Capture* capture)
 {
     int      i;
