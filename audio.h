@@ -40,22 +40,25 @@ typedef struct
 
 typedef struct
 {
-    snd_pcm_t* capture_handle;
+    snd_pcm_t*     capture_handle;
+    struct pollfd* poll_desc;
+    int            poll_count;
 } PCM_Capture;
 
 PCM_Play* playback_open(char* name, unsigned int rate, int depth);
 void playback_prepare(PCM_Play* play);
 void playback_close(PCM_Play* play);
 
-PCM_Capture* capture_open(char* name, unsigned int rate, int depth);
-void capture_close(PCM_Capture* capture);
-
 bool playback_ready(PCM_Play* play);
 
 bool  playback_play(PCM_Play* play, int16_t* data, int count);
 void playback_stop(PCM_Play* play);
 
-int16_t* recordsound(PCM_Capture* capture);
+PCM_Capture* capture_open(char* name, unsigned int rate, int depth);
+void capture_prepare(PCM_Capture* capture);
+bool capture_ready(PCM_Capture* capture);
+void capture_close(PCM_Capture* capture);
+int capture_record(PCM_Capture* capture,int16_t* buf, int bufsize);
 
 Mixer* mixer_open(const char* name);
 void mixer_close(Mixer* mixer);

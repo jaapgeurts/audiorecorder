@@ -16,6 +16,7 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 #endif
 
     int mode = SND_PCM_NONBLOCK;
+
     if ((err = snd_pcm_open (&(play->playback_handle), name, SND_PCM_STREAM_PLAYBACK, mode)) < 0)
     {
         fprintf (stderr, "cannot open audio device %s (%s)\n", name, snd_strerror (err));
@@ -90,39 +91,38 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
     play->frames *= 16;  //multiply by 16 it so that the buffer always has enough space
 
     snd_pcm_hw_params_free (hw_params);
-    
+
     return play;
 }
 
 void playback_prepare(PCM_Play* play)
 {
     int err;
-    
+
     /*    struct stat          st;
-     * 
+     *
      *        stat("test.raw", &st);
      *        unsigned long len = st.st_size / sizeof(short);
      *        printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
-     * 
+     *
      *        FILE* fp = fopen("test.raw", "r");
      */
-    
+
     if ((err = snd_pcm_prepare (play->playback_handle)) < 0)
     {
         fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
         return;
     }
-    
+
     // Setup poll descriptors
     play->poll_count = snd_pcm_poll_descriptors_count(play->playback_handle);
     play->poll_desc  = calloc(play->poll_count, sizeof(struct pollfd));
     snd_pcm_poll_descriptors(play->playback_handle, play->poll_desc, play->poll_count);
 }
 
-
 void playback_close(PCM_Play* play)
 {
-//    snd_pcm_drain(play->playback_handle);
+    //    snd_pcm_drain(play->playback_handle);
     snd_pcm_drop(play->playback_handle);
 
     snd_pcm_close (play->playback_handle);
@@ -130,6 +130,71 @@ void playback_close(PCM_Play* play)
     free(play->poll_desc);
 
     free(play);
+}
+
+bool playback_ready(PCM_Play* play)
+{
+    unsigned short revents;
+
+    // Do not block, set timeout to 0
+    poll(play->poll_desc, play->poll_count, 0);
+
+    snd_pcm_poll_descriptors_revents(play->playback_handle, play->poll_desc, play->poll_count, &revents);
+
+    return (revents & POLLOUT) == POLLOUT;
+}
+
+bool playback_play(PCM_Play* play, int16_t* data, int count)
+{
+    int err;
+
+    printf("before play: count: %d\n", count);
+
+    int start = 0;
+
+    while (start < count)
+    {
+        int amount = play->frames;
+
+        if (start + amount >= count)
+            amount = count - start;
+
+        //         printf(".");
+        //         fflush(stdout);
+
+        //  GCW0 Driver doesn't take mono data, must send stereo, so send non interleaved
+        // and point both channels to the same array
+
+        short* ptr = &data[start];
+#ifdef GCW0
+        short* buf[2];
+        buf[0] = buf[1] = ptr;
+
+        if ((err = snd_pcm_writen (play->playback_handle, (void**)buf, amount)) == -EPIPE)
+#else
+
+        if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
+#endif
+        {
+            printf("Underrun \n");
+            snd_pcm_prepare (play->playback_handle);
+        }
+        else if (err == -EAGAIN)
+            return false;
+        else if (err < 0)
+        {
+            fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
+            return false;
+        }
+        start += amount;
+    }
+    printf("Wrote: %d shorts\n", start);
+    return true;
+}
+
+void playback_stop(PCM_Play* play)
+{
+    snd_pcm_drop(play->playback_handle);
 }
 
 PCM_Capture* capture_open(char* name, unsigned int rate,  int depth)
@@ -203,8 +268,6 @@ PCM_Capture* capture_open(char* name, unsigned int rate,  int depth)
     }
 
     snd_pcm_hw_params_free (hw_params);
-    
-
 
     return capture;
 }
@@ -215,90 +278,42 @@ void capture_close(PCM_Capture* capture)
     free(capture);
 }
 
-bool playback_ready(PCM_Play* play)
+void capture_prepare(PCM_Capture* capture)
+{
+    int err;
+
+    if ((err = snd_pcm_prepare (capture->capture_handle)) < 0)
+    {
+        fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
+        return NULL;
+    }
+
+    // Setup poll descriptors
+    capture->poll_count = snd_pcm_poll_descriptors_count(capture->capture_handle);
+    capture->poll_desc  = calloc(capture->poll_count, sizeof(struct pollfd));
+    snd_pcm_poll_descriptors(capture->capture_handle, capture->poll_desc, capture->poll_count);
+}
+
+bool capture_ready(PCM_Capture* capture)
 {
     unsigned short revents;
 
     // Do not block, set timeout to 0
-    poll(play->poll_desc, play->poll_count, 0);
+    poll(capture->poll_desc, capture->poll_count, 0);
 
-    snd_pcm_poll_descriptors_revents(play->playback_handle, play->poll_desc, play->poll_count, &revents);
+    snd_pcm_poll_descriptors_revents(capture->capture_handle, capture->poll_desc, capture->poll_count, &revents);
 
-    return (revents & POLLOUT) == POLLOUT;
+    return (revents & POLLIN) == POLLIN;
 }
 
-
-bool playback_play(PCM_Play* play, int16_t* data, int count)
+/*
+ * Count = number of frames
+ * buf size should be samplesize * channels * frames
+ */
+int capture_record(PCM_Capture* capture,int16_t* buf, int count)
 {
-    int err;
-    
-    printf("before play: count: %d\n",count);
 
-    int start = 0;
-
-    while (start < count)
-    {
-        int amount = play->frames;
-
-        if (start + amount >= count)
-            amount = count - start;
-
-//         printf(".");
-//         fflush(stdout);
-
-        //  GCW0 Driver doesn't take mono data, must send stereo, so send non interleaved
-        // and point both channels to the same array
-
-        short* ptr = &data[start];
-#ifdef GCW0
-        short* buf[2];
-        buf[0] = buf[1] = ptr;
-
-        if ((err = snd_pcm_writen (play->playback_handle, (void**)buf, amount)) == -EPIPE)
-#else
-
-        if ((err = snd_pcm_writei (play->playback_handle, ptr, amount)) == -EPIPE)
-#endif
-        {
-            printf("Underrun \n");
-            snd_pcm_prepare (play->playback_handle);
-        } else if (err == -EAGAIN)
-            return false;
-        else if (err < 0)
-        {
-            fprintf (stderr, "write to audio interface failed (%s)\n", snd_strerror (err));
-            return false;
-        }
-        start += amount;
-    }
-    printf("Wrote: %d shorts\n", start);
-    return true;
-}
-
-void playback_stop(PCM_Play* play)
-{
-    snd_pcm_drop(play->playback_handle);
-}
-
-
-int16_t* recordsound(PCM_Capture* capture)
-{
-    int      i;
-    int      err;
-    short*   buf;
-    int16_t* result;
-
-    if ((err = snd_pcm_prepare (capture->capture_handle)) < 0)
-    {
-        fprintf (stderr, "cannot prepare audio interface for use (%s)\n",
-            snd_strerror (err));
-        return NULL;
-    }
-
-    snd_pcm_uframes_t frames   = 1024;
-    int               buf_size = sizeof(short) * frames;
-    buf    = malloc(buf_size);
-    result = (int16_t*)malloc(sizeof(int16_t) * frames * 500);
+    int               err;
 
     //     SF_INFO info = {
     //         .frames     = frames * 500 * 2, // two channels
@@ -311,23 +326,12 @@ int16_t* recordsound(PCM_Capture* capture)
 
     //   SNDFILE* fp = sf_open("rec.wav", SFM_WRITE, &info);
 
-    for (i = 0; i < 500; ++i)
+    if ((err = snd_pcm_readi (capture->capture_handle, buf, count)) != count)
     {
-        if ((err = snd_pcm_readi (capture->capture_handle, buf, frames)) != frames)
-        {
-            fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (err));
-            free(buf);
-            free(result);
-            return NULL;
-        }
-        //   sf_write_short(fp, buf, frames * 2);
-
-        for (int j = 0; j < buf_size; j++)
-        {
-            result[i * frames + j] = buf[j];
-        }
+        fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (err));
+        return NULL;
     }
-    free(buf);
+    //   sf_write_short(fp, buf, frames * 2);
 
     //  sf_close(fp);
 

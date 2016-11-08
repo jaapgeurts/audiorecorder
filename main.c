@@ -34,7 +34,8 @@ app_error_codes;
 char output_filename[OUTPUT_FILENAME_SIZE];
 
 /* AUDIO RELATED variables */
-PCM_Play* play;
+PCM_Play*    play;
+PCM_Capture* capture;
 
 // Default recording settings
 unsigned int sample_rate = 44100;
@@ -43,10 +44,15 @@ Mixer*       mixer_mic   = NULL;
 Mixer*       mixer_pcm   = NULL;
 #define VOLUME_STEP 0.1
 
-int16_t* data              = NULL;
+// Count of frames to record at each call
+// for now equal to the sample freq
+#define FRAME_COUNT 44100
+#define CHANNELS    1
+int16_t* data[FRAME_COUNT * CHANNELS];
 int      audio_frames_sent = 0;
 float    current_volume    = 0.8;
 bool     playing           = false;
+bool     recording         = false;
 int      frame_count       = 16;
 
 /* UI Related variables */
@@ -155,18 +161,10 @@ static bool on_record_stop(GGWidget* widget, SDL_Event* event)
 
 static bool on_record_click(GGWidget* widget, SDL_Event* event)
 {
-    PCM_Capture* capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
-
-    if (capture == NULL)
-    {
-        printf("Can't open device '%s' for capture\n", CAPTURE_DEVICE);
-        return true;
-    }
+    capture_prepare(capture);
 
     printf("Start recording\n");
-
-    if (data)
-        free(data);
+    recording = true;
 
     GGWidgetSetVisible((GGWidget*)btn_play, false);
     GGWidgetSetVisible((GGWidget*)btn_stop, true);
@@ -175,11 +173,9 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
     GGImageButtonSetOnClickFunc(btn_stop, on_record_stop);
 
-    data = recordsound(capture);
+    int actual = capture_record(PCM_Capture * capture, (void*)data, FRAME_COUNT );
 
     printf("Recording done\n");
-
-    capture_close(capture);
 
     on_record_stop(widget, event);
 
@@ -195,9 +191,9 @@ static bool on_play_stop(GGWidget* widget, SDL_Event* event)
 
     GGWidgetSetEnabled((GGWidget*)btn_new, true);
     GGWidgetSetEnabled((GGWidget*)btn_mic, true);
-    
+
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
-    
+
     playback_stop(play);
 
     return true;
@@ -250,13 +246,15 @@ void check_audio(GGScreen* screen)
     {
         send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
     }
-     else {
-         if (snd_pcm_avail(play->playback_handle)<=0){
+    else
+    {
+        if (snd_pcm_avail(play->playback_handle) <= 0)
+        {
             printf("Audio drained..... done\n");
-            on_play_stop(NULL,NULL);
+            on_play_stop(NULL, NULL);
             playing = false;
-         }
-     }
+        }
+    }
 }
 
 static void vumeter_volume_up(GGWidget* widget)
@@ -285,6 +283,7 @@ static void vumeter_volume_down(GGWidget* widget)
 
 int main(int argc, char** argv)
 {
+    // Open all audio interfaces
     play = playback_open(PLAYBACK_DEVICE, sample_rate, bitdepth);
 
     if (play == NULL)
@@ -301,9 +300,19 @@ int main(int argc, char** argv)
         return ERR_NO_MIXER;
     }
 
+    capture = capture_open(AUDIO_DEVICE, sample_rate, bitdepth);
+
+    if (capture == NULL)
+    {
+        printf("Can't open device '%s' for capture\n", CAPTURE_DEVICE);
+        return ERR_NO_AUDIO;
+    }
+
+    // Correct volume input for the microphone
     mixer_enable_capture(mixer_mic);
     current_volume = mixer_volume(mixer_mic);
 
+    // Setup UI
     if (!GGInit(&argc, &argv))
     {
         fprintf(stderr, "Can't initialize (%s)\n", GGLastError());
@@ -378,7 +387,8 @@ int main(int argc, char** argv)
 
     GGQuit();
 
-    // These two can't be NULL or the program won't start
+    // These three can't be NULL or the program won't start
+    capture_close(capture);
     mixer_close(mixer_mic);
     playback_close(play);
 
