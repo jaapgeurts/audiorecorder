@@ -248,6 +248,13 @@ void check_audio(GGScreen* screen)
     {
         send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
     }
+     else {
+         if (snd_pcm_avail(play->playback_handle)<=0){
+            printf("Audio drained..... done\n");
+            on_play_stop(NULL,NULL);
+            playing = false;
+         }
+     }
 }
 
 static void vumeter_volume_up(GGWidget* widget)
