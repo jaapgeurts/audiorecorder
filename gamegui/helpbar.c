@@ -1,3 +1,5 @@
+#include <SDL2/SDL_image.h>
+
 #include "helpbar.h"
 
 char* icons_names[TOTAL_BUTTONS] = {

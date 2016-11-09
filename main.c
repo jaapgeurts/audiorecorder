@@ -31,255 +31,74 @@ app_error_codes;
 
 /* Define a few globals */
 #define OUTPUT_FILENAME_SIZE 50
-char output_filename[OUTPUT_FILENAME_SIZE];
+static char output_filename[OUTPUT_FILENAME_SIZE];
 
 /* AUDIO RELATED variables */
-PCM_Play*    play;
-PCM_Capture* capture;
+static PCM_Play*    play    = NULL;
+static PCM_Capture* capture = NULL;
 
 // Default recording settings
-unsigned int sample_rate = 44100;
-int          bitdepth    = 16;
-Mixer*       mixer_mic   = NULL;
-Mixer*       mixer_pcm   = NULL;
+static unsigned int sample_rate = 44100;
+static int          bitdepth    = 16;
+static Mixer*       mixer_mic   = NULL;
+//static Mixer*       mixer_pcm   = NULL;
 #define VOLUME_STEP 0.1
 
 // Count of frames to record at each call
 // for now equal to the sample freq
-#define FRAME_COUNT 44100
-#define CHANNELS    1
-int16_t* data[FRAME_COUNT * CHANNELS];
-int      audio_frames_sent = 0;
-float    current_volume    = 0.8;
-bool     playing           = false;
-bool     recording         = false;
-int      frame_count       = 16;
+#define FRAME_COUNT  44100
+#define CHANNELS     1
+#define INITIAL_SECS 5
+// buffer for 5 seconds initially
+#define AUDIO_BUF_INITIAL_SIZE (FRAME_COUNT * CHANNELS * INITIAL_SECS)
+static u_int32_t       audio_buf_size     = AUDIO_BUF_INITIAL_SIZE;
+static const u_int32_t AUDIO_BUF_INC_SIZE = FRAME_COUNT * CHANNELS * INITIAL_SECS;
+static int16_t*        audio_buf          = NULL;
+static u_int32_t       audio_buf_index    = 0;
+
+static float           current_volume = 0.8;
+typedef enum  { STOPPED, PLAYING, RECORDING } audio_state_t;
+static audio_state_t   audio_state = STOPPED;
 
 /* UI Related variables */
-GGScreen*      screen = NULL;
-GGWaveform*    wfw;
-GGLabel*       lbl_title  = NULL;
-GGImageButton* btn_exit   = NULL;
-GGLabel*       lbl_file   = NULL;
-GGButton*      btn_new    = NULL;
-GGImageButton* btn_record = NULL;
-GGImageButton* btn_play   = NULL;
-GGImageButton* btn_stop   = NULL;
-GGImageButton* btn_replay = NULL;
-GGImageButton* btn_mic    = NULL;
-GGVUMeter*     vumeter    = NULL;
-GGHelpBar*     helpbar1   = NULL;
+static GGScreen*      screen     = NULL;
+static GGWaveform*    wfw        = NULL;
+static GGLabel*       lbl_title  = NULL;
+static GGImageButton* btn_exit   = NULL;
+static GGLabel*       lbl_file   = NULL;
+static GGButton*      btn_new    = NULL;
+static GGImageButton* btn_record = NULL;
+static GGImageButton* btn_play   = NULL;
+static GGImageButton* btn_stop   = NULL;
+static GGImageButton* btn_replay = NULL;
+static GGImageButton* btn_mic    = NULL;
+static GGVUMeter*     vumeter    = NULL;
+static GGHelpBar*     helpbar1   = NULL;
 
-SDL_Color      dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
+static SDL_Color      dark_gray = {0x2f, 0x2f, 0x2f, 0xff};
 
-/** UI FUNCTIONS **/
-static void render_bg(SDL_Renderer* renderer)
-{
-    // printf("Rendering background\n");
-    SDL_SetRenderDrawColor(renderer, dark_gray.r, dark_gray.g, dark_gray.b, dark_gray.a);
-    SDL_RenderClear(renderer);
-}
+// forward declarations of all functions
+/* UI functions*/
 
-static bool on_exit_click(GGWidget* widget, SDL_Event* event)
-{
-    GGStop();
+static void render_bg(SDL_Renderer* renderer);
+static bool on_exit_click(GGWidget* widget, SDL_Event* event);
+static void new_filename(char* buf, int size);
+static bool on_new_click(GGWidget* widget, SDL_Event* event);
+static void vumeter_focus_gained(GGWidget* widget);
+static void vumeter_focus_lost(GGWidget* widget);
+static void vumeter_grab_dpad(GGWidget* widget);
+static void vumeter_release_dpad(GGWidget* widget);
+static bool on_record_click(GGWidget* widget, SDL_Event* event);
+static bool on_record_stop(GGWidget* widget, SDL_Event* event);
+static void handle_recording();
+static bool on_play_stop(GGWidget* widget, SDL_Event* event);
+static bool on_play_click(GGWidget* widget, SDL_Event* event);
+static void handle_playing();
+static void check_audio(GGScreen* screen);
+static void vumeter_volume_up(GGWidget* widget);
+static void vumeter_volume_down(GGWidget* widget);
 
-    return true;
-}
-
-static void new_filename(char* buf, int size)
-{
-    time_t     rawtime;
-    struct tm* timeinfo;
-
-    time (&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
-}
-
-static bool on_new_click(GGWidget* widget, SDL_Event* event)
-{
-    GGButton* button = (GGButton*)widget;
-
-    if (data)
-    {
-        free(data);
-        data = NULL;
-    }
-    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
-    GGWidgetSetEnabled((GGWidget*)btn_new, true);
-
-    new_filename(output_filename, OUTPUT_FILENAME_SIZE);
-    GGLabelSetLabel(lbl_file, output_filename);
-    GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
-
-    return true;
-}
-
-static void vumeter_focus_gained(GGWidget* widget)
-{
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
-}
-
-static void vumeter_focus_lost(GGWidget* widget)
-{
-    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
-}
-
-static void vumeter_grab_dpad(GGWidget* widget)
-{
-    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, "Release");
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, NULL);
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, "Inc/Dec Level");
-}
-
-static void vumeter_release_dpad(GGWidget* widget)
-{
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, NULL);
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
-    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, NULL);
-}
-
-/** AUDIO FUNCTIONS **/
-
-static bool on_record_stop(GGWidget* widget, SDL_Event* event)
-{
-    GGWidgetSetVisible((GGWidget*)btn_play, true);
-    GGWidgetSetVisible((GGWidget*)btn_stop, false);
-
-    GGWidgetSetEnabled((GGWidget*)btn_new, false);
-    GGWidgetSetEnabled((GGWidget*)btn_play, true);
-    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
-
-    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
-    return true;
-}
-
-static bool on_record_click(GGWidget* widget, SDL_Event* event)
-{
-    capture_prepare(capture);
-
-    printf("Start recording\n");
-    recording = true;
-
-    GGWidgetSetVisible((GGWidget*)btn_play, false);
-    GGWidgetSetVisible((GGWidget*)btn_stop, true);
-    GGWidgetSetEnabled((GGWidget*)btn_record, false);
-    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
-    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
-    GGImageButtonSetOnClickFunc(btn_stop, on_record_stop);
-
-    int actual = capture_record(PCM_Capture * capture, (void*)data, FRAME_COUNT );
-
-    printf("Recording done\n");
-
-    on_record_stop(widget, event);
-
-    GGWaveformSetData(wfw, data, 1024 * 500);
-
-    return true;
-}
-
-static bool on_play_stop(GGWidget* widget, SDL_Event* event)
-{
-    GGWidgetSetVisible((GGWidget*)btn_play, true);
-    GGWidgetSetVisible((GGWidget*)btn_stop, false);
-
-    GGWidgetSetEnabled((GGWidget*)btn_new, true);
-    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
-
-    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
-
-    playback_stop(play);
-
-    return true;
-}
-
-static void send_audio(PCM_Play* play,  int16_t* buf, int cnt)
-{
-    printf("Send next batch\n");
-
-    if (playback_play(play, buf, cnt))
-        audio_frames_sent++;
-}
-
-static bool on_play_click(GGWidget* widget, SDL_Event* event)
-{
-    playback_prepare(play);
-
-    printf("Start playback\n");
-    playing = true;
-
-    audio_frames_sent = 0;
-    GGWidgetSetVisible((GGWidget*)btn_play, false);
-    GGWidgetSetVisible((GGWidget*)btn_stop, true);
-    GGImageButtonSetOnClickFunc(btn_stop, on_play_stop);
-
-    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
-    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
-
-    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
-
-    // Send inital frame
-    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-    send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-
-    return true;
-}
-
-void check_audio(GGScreen* screen)
-{
-    if (!playing)
-        return;
-
-    if (!playback_ready(play))
-    {
-        printf("Play not ready for next batch\n");
-        return;
-    }
-
-    if (audio_frames_sent  < (1024 * 500) / play->frames)
-    {
-        send_audio(play, &data[audio_frames_sent * play->frames], play->frames );
-    }
-    else
-    {
-        if (snd_pcm_avail(play->playback_handle) <= 0)
-        {
-            printf("Audio drained..... done\n");
-            on_play_stop(NULL, NULL);
-            playing = false;
-        }
-    }
-}
-
-static void vumeter_volume_up(GGWidget* widget)
-{
-    GGVUMeter* vumeter = (GGVUMeter*)widget;
-
-    current_volume += VOLUME_STEP;
-
-    if (current_volume > 1)
-        current_volume = 1;
-    mixer_set_volume(mixer_mic, current_volume);
-    GGVUMeterSetVolume(vumeter, current_volume);
-}
-
-static void vumeter_volume_down(GGWidget* widget)
-{
-    GGVUMeter* vumeter = (GGVUMeter*)widget;
-
-    current_volume -= VOLUME_STEP;
-
-    if (current_volume < 0)
-        current_volume = 0;
-    mixer_set_volume(mixer_mic, current_volume);
-    GGVUMeterSetVolume(vumeter, current_volume);
-}
+static void ensure_audio_buf_size(u_int32_t lastindex);
 
 int main(int argc, char** argv)
 {
@@ -311,6 +130,8 @@ int main(int argc, char** argv)
     // Correct volume input for the microphone
     mixer_enable_capture(mixer_mic);
     current_volume = mixer_volume(mixer_mic);
+
+    audio_buf = malloc(sizeof(int16_t) * AUDIO_BUF_INITIAL_SIZE);
 
     // Setup UI
     if (!GGInit(&argc, &argv))
@@ -387,13 +208,267 @@ int main(int argc, char** argv)
 
     GGQuit();
 
+    if (audio_buf)
+        free(audio_buf);
+
     // These three can't be NULL or the program won't start
     capture_close(capture);
     mixer_close(mixer_mic);
     playback_close(play);
 
-    if (data)
-        free(data);
-
     return 0;
+}
+
+/** UI FUNCTIONS **/
+static void render_bg(SDL_Renderer* renderer)
+{
+    // printf("Rendering background\n");
+    SDL_SetRenderDrawColor(renderer, dark_gray.r, dark_gray.g, dark_gray.b, dark_gray.a);
+    SDL_RenderClear(renderer);
+}
+
+static bool on_exit_click(GGWidget* widget, SDL_Event* event)
+{
+    GGStop();
+
+    return true;
+}
+
+static void new_filename(char* buf, int size)
+{
+    time_t     rawtime;
+    struct tm* timeinfo;
+
+    time (&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(buf, size, "AUD_%Y%m%d_%H%M%S.wav", timeinfo);
+}
+
+static bool on_new_click(GGWidget* widget, SDL_Event* event)
+{
+    __attribute__((unused))
+    GGButton* button = (GGButton*)widget;
+
+    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
+    GGWidgetSetEnabled((GGWidget*)btn_new, true);
+
+    new_filename(output_filename, OUTPUT_FILENAME_SIZE);
+    GGLabelSetLabel(lbl_file, output_filename);
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_record);
+
+    return true;
+}
+
+static void vumeter_focus_gained(GGWidget* widget)
+{
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
+}
+
+static void vumeter_focus_lost(GGWidget* widget)
+{
+    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
+}
+
+static void vumeter_grab_dpad(GGWidget* widget)
+{
+    // ↔ ↕  : ⇔ ⇕ : ⬄ ⇳
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, "Release");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, "Inc/Dec Level");
+}
+
+static void vumeter_release_dpad(GGWidget* widget)
+{
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_X, NULL);
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_SELECT, "Change level");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_ALL, "Navigate");
+    GGHelpBarSetHelp(helpbar1, GCW_BTN_DPAD_UD, NULL);
+}
+
+/** AUDIO FUNCTIONS **/
+
+static bool on_record_click(GGWidget* widget, SDL_Event* event)
+{
+    capture_prepare(capture);
+
+    printf("Start recording\n");
+    audio_state = RECORDING;
+
+    if (audio_buf)
+        free(audio_buf);
+    audio_buf       = malloc(sizeof(int16_t) * AUDIO_BUF_INITIAL_SIZE);
+    audio_buf_index = 0;
+
+    GGWidgetSetVisible((GGWidget*)btn_play, false);
+    GGWidgetSetVisible((GGWidget*)btn_stop, true);
+    GGWidgetSetEnabled((GGWidget*)btn_record, false);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
+    GGImageButtonSetOnClickFunc(btn_stop, on_record_stop);
+
+    return true;
+}
+
+static bool on_record_stop(GGWidget* widget, SDL_Event* event)
+{
+    GGWidgetSetVisible((GGWidget*)btn_play, true);
+    GGWidgetSetVisible((GGWidget*)btn_stop, false);
+
+    GGWidgetSetEnabled((GGWidget*)btn_new, false);
+    GGWidgetSetEnabled((GGWidget*)btn_play, true);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
+
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
+
+    printf("Recording done\n");
+
+    capture_stop(capture);
+
+    audio_state = STOPPED;
+
+    GGWaveformSetData(wfw, audio_buf, AUDIO_BUF_INITIAL_SIZE);
+
+    return true;
+}
+
+static void handle_recording()
+{
+    if (!capture_ready(capture))
+    {
+        printf("Record not ready for fetching data\n");
+    }
+
+    ensure_audio_buf_size(audio_buf_index + FRAME_COUNT);
+
+    int actual = capture_record(capture, (void*)&audio_buf[audio_buf_index], FRAME_COUNT );
+
+    audio_buf_index += actual;
+}
+
+static bool on_play_stop(GGWidget* widget, SDL_Event* event)
+{
+    GGWidgetSetVisible((GGWidget*)btn_play, true);
+    GGWidgetSetVisible((GGWidget*)btn_stop, false);
+
+    GGWidgetSetEnabled((GGWidget*)btn_new, true);
+    GGWidgetSetEnabled((GGWidget*)btn_mic, true);
+
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_play);
+
+    playback_stop(play);
+
+    return true;
+}
+
+static bool on_play_click(GGWidget* widget, SDL_Event* event)
+{
+    playback_prepare(play);
+
+    printf("Start playback\n");
+    audio_state     = PLAYING;
+    audio_buf_index = 0;
+    GGWidgetSetVisible((GGWidget*)btn_play, false);
+    GGWidgetSetVisible((GGWidget*)btn_stop, true);
+    GGImageButtonSetOnClickFunc(btn_stop, on_play_stop);
+
+    GGWidgetSetEnabled((GGWidget*)btn_mic, false);
+    GGWidgetSetEnabled((GGWidget*)btn_replay, true);
+
+    GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
+
+    // Send inital frame
+    int actual = playback_play(play, &audio_buf[audio_buf_index], play->frames );
+
+    audio_buf_index += actual;
+
+    return true;
+}
+
+static void handle_playing()
+{
+    if (!playback_ready(play))
+    {
+        printf("Playback not ready for sending data\n");
+        return;
+    }
+
+    int count = play->frames;
+
+    if (audio_buf_index + count >= audio_buf_size)
+        count = audio_buf_size - audio_buf_index;
+
+    if (count > 0)
+    {
+        int actual = playback_play(play, &audio_buf[audio_buf_index], count );
+
+        audio_buf_index += actual;
+    }
+    else
+    {
+        if (snd_pcm_avail(play->playback_handle) <= 0)
+        {
+            printf("Audio drained..... done\n");
+            on_play_stop(NULL, NULL);
+            audio_state = STOPPED;
+        }
+    }
+}
+
+static void check_audio(GGScreen* screen)
+{
+    switch (audio_state)
+    {
+        case PLAYING:
+            handle_playing();
+            break;
+
+        case RECORDING:
+            handle_recording();
+            break;
+
+        case STOPPED:
+        default:
+            // do nothing
+            break;
+    }
+}
+
+static void vumeter_volume_up(GGWidget* widget)
+{
+    GGVUMeter* vumeter = (GGVUMeter*)widget;
+
+    current_volume += VOLUME_STEP;
+
+    if (current_volume > 1)
+        current_volume = 1;
+    mixer_set_volume(mixer_mic, current_volume);
+    GGVUMeterSetVolume(vumeter, current_volume);
+}
+
+static void vumeter_volume_down(GGWidget* widget)
+{
+    GGVUMeter* vumeter = (GGVUMeter*)widget;
+
+    current_volume -= VOLUME_STEP;
+
+    if (current_volume < 0)
+        current_volume = 0;
+    mixer_set_volume(mixer_mic, current_volume);
+    GGVUMeterSetVolume(vumeter, current_volume);
+}
+
+static void ensure_audio_buf_size(u_int32_t lastindex)
+{
+    if (lastindex < audio_buf_size)
+        return;
+
+    printf("check buf size %u, %u,", audio_buf_size, lastindex);
+
+    audio_buf_size += AUDIO_BUF_INC_SIZE;
+
+    printf("%u\n", audio_buf_size);
+
+    audio_buf = realloc(audio_buf, audio_buf_size);
 }
