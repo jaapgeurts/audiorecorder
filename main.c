@@ -349,6 +349,7 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     
     capture_prepare(capture);
     
+      
     return true;
 }
 
@@ -390,7 +391,7 @@ static void handle_recording()
     printf("Ready\n");
     ensure_audio_buf_size(audio_buf_index1 + FRAME_COUNT);
 
-    int actual = capture_record(capture, (void*)&audio_buf1[audio_buf_index1], FRAME_COUNT );
+    int actual = capture_record(capture, (void*)&audio_buf1[audio_buf_index1], FRAME_COUNT);
 
     audio_buf_index1 += actual;
 }

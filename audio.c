@@ -85,7 +85,7 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 
     snd_pcm_hw_params_get_period_size(hw_params, &(play->frames), 0);
 
-    play->frames *= 16;  //multiply by 16 it so that the buffer always has enough space
+    play->frames *= 32;  //multiply by 16 it so that the buffer always has enough space
 
     snd_pcm_hw_params_free (hw_params);
 
@@ -104,12 +104,14 @@ void playback_prepare(PCM_Play* play)
         return;
     }
 
-    snd_pcm_start(play->playback_handle);
-
     // Setup poll descriptors
     play->poll_count = snd_pcm_poll_descriptors_count(play->playback_handle);
     play->poll_desc  = calloc(play->poll_count, sizeof(struct pollfd));
     snd_pcm_poll_descriptors(play->playback_handle, play->poll_desc, play->poll_count);
+
+    
+ //   snd_pcm_start(play->playback_handle);
+    
 }
 
 void playback_close(PCM_Play* play)
@@ -163,7 +165,6 @@ int playback_play(PCM_Play* play, int16_t* data, int count)
     {
         printf("Underrun \n");
         snd_pcm_recover (play->playback_handle, amt, 0);
-
         //snd_pcm_prepare (play->playback_handle);
     }
     else if (amt == -EAGAIN)
@@ -248,20 +249,42 @@ PCM_Capture* capture_open(char* name, unsigned int rate,  int depth)
         fprintf (stderr, "cannot set channel count %d (%s)\n", channels, snd_strerror (err));
         return NULL;
     }
+    
+//     snd_pcm_uframes_t period_size = 1024;
+//     if ((err == snd_pcm_hw_params_set_period_size_near(capture->capture_handle,hw_params,&period_size,0)) < 0)
+//     {
+//         fprintf (stderr, "cannot set period size %d, actual: %lu (%s)\n", 1024, period_size, snd_strerror (err));
+//         return NULL;
+//     }
 
+//      snd_pcm_uframes_t bufsize = 2097152;
+//      
+//      if ((err = snd_pcm_hw_params_set_buffer_size_near(capture->capture_handle, hw_params, &bufsize)) < 0)
+//      {
+//          fprintf(stderr, "Can't set recording buffer of %lu bytes\n", bufsize);
+//          return NULL;
+//      }
+//       printf("Recording buffer size %d, actual: %lu\n",2097152, bufsize);
+
+// set buffersize to 2 seconds at 44.1kHz
+    static unsigned int time = 5000000; 
+    int dir; 
+    if ((err == snd_pcm_hw_params_set_buffer_time_near(capture->capture_handle,hw_params,&time, &dir)) < 0)
+    {
+        fprintf (stderr, "cannot set buffer time %ul, actual: %ul (%s)\n", 5000000, time, snd_strerror (err));
+        return NULL;
+    }
+    
+    /*
+     snd_pcm_uframes_t bsize;                      *
+     snd_pcm_hw_params_get_buffer_size(hw_params,&bsize); */
+    
     if ((err = snd_pcm_hw_params (capture->capture_handle, hw_params)) < 0)
     {
         fprintf (stderr, "cannot set parameters (%s)\n", snd_strerror (err));
         return NULL;
     }
 
-//     snd_pcm_uframes_t bufsize = 44100*5;
-// 
-//     if ((err = snd_pcm_hw_params_set_buffer_size_near(capture->capture_handle, hw_params, &bufsize)) < 0)
-//     {
-//         fprintf(stderr, "Can't set recording buffer of %lu bytes\n", bufsize);
-//         return NULL;
-//     }
 
     snd_pcm_hw_params_free (hw_params);
 
@@ -288,29 +311,27 @@ void capture_prepare(PCM_Capture* capture)
         return;
     }
 
-    snd_pcm_start(capture->capture_handle);
-    // capture->again = false;
 
     // Setup poll descriptors
     capture->poll_count = snd_pcm_poll_descriptors_count(capture->capture_handle);
     capture->poll_desc  = calloc(capture->poll_count, sizeof(struct pollfd));
     snd_pcm_poll_descriptors(capture->capture_handle, capture->poll_desc, capture->poll_count);
+
+    snd_pcm_start(capture->capture_handle);
+    
 }
 
 bool capture_ready(PCM_Capture* capture)
 {
     unsigned short revents;
 
-    //     if (capture->again) {
-    //         capture->again = false;
-    //         return true;
-    //     }
 
     // Do not block, set timeout to 0
     poll(capture->poll_desc, capture->poll_count, 0);
 
     snd_pcm_poll_descriptors_revents(capture->capture_handle, capture->poll_desc, capture->poll_count, &revents);
 
+    printf("Poll: %x\n",revents);
     return (revents & POLLIN) == POLLIN;
 }
 
@@ -327,8 +348,10 @@ int capture_record(PCM_Capture* capture, int16_t* buf, int count)
 {
     int amt;
 
+    snd_pcm_avail_update(capture->capture_handle);
+   
     amt = snd_pcm_readi (capture->capture_handle, buf, count);
-
+    
     if (amt == -EPIPE)
     {
         printf("Overrun \n");
@@ -337,16 +360,16 @@ int capture_record(PCM_Capture* capture, int16_t* buf, int count)
     }
     else if (amt == -EAGAIN)
     {
-        //capture->again = true;
         return 0;
     }
     else if (amt < 0)
-
     {
-        fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (amt));
+        //snd_pcm_recover (capture->capture_handle,amt,0);
+        //snd_pcm_resume(capture->capture_handle);
+        fprintf (stderr, "Read from audio interface failed (%s)\n", snd_strerror (amt));
         return 0;
     }
-
+    printf("Read: %d bytes\n",amt);
     return amt;
 }
 
