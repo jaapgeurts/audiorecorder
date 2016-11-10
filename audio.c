@@ -1,5 +1,4 @@
-#include <sndfile.h>
-#include <sys/stat.h>
+
 
 #include "audio.h"
 
@@ -98,15 +97,6 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 void playback_prepare(PCM_Play* play)
 {
     int err;
-
-    /*    struct stat          st;
-     *
-     *        stat("test.raw", &st);
-     *        unsigned long len = st.st_size / sizeof(short);
-     *        printf("File %s is %lu bytes long, %lu shorts\n", "test.raw", (unsigned long)st.st_size, len);
-     *
-     *        FILE* fp = fopen("test.raw", "r");
-     */
 
     if ((err = snd_pcm_prepare (play->playback_handle)) < 0)
     {
@@ -315,25 +305,11 @@ int capture_record(PCM_Capture* capture, int16_t* buf, int count)
 {
     int err;
 
-    //     SF_INFO info = {
-    //         .frames     = frames * 500 * 2, // two channels
-    //         .samplerate = 44100,
-    //         .channels   = 2,
-    //         .format     = SF_FORMAT_WAV | SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE,
-    //         .sections   = 0,
-    //         .seekable   = 0
-    //     };
-
-    //   SNDFILE* fp = sf_open("rec.wav", SFM_WRITE, &info);
-
     if ((err = snd_pcm_readi (capture->capture_handle, buf, count)) < 0)
     {
         fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (err));
         return 0;
     }
-    //   sf_write_short(fp, buf, frames * 2);
-
-    //  sf_close(fp);
 
     return err;
 }
