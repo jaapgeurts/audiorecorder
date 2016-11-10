@@ -1,5 +1,3 @@
-
-
 #include "audio.h"
 
 PCM_Play* playback_open(char* name, unsigned int rate, int depth)
@@ -91,6 +89,8 @@ PCM_Play* playback_open(char* name, unsigned int rate, int depth)
 
     snd_pcm_hw_params_free (hw_params);
 
+    snd_pcm_nonblock(play->playback_handle, 1);
+
     return play;
 }
 
@@ -103,6 +103,8 @@ void playback_prepare(PCM_Play* play)
         fprintf (stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror (err));
         return;
     }
+
+    snd_pcm_start(play->playback_handle);
 
     // Setup poll descriptors
     play->poll_count = snd_pcm_poll_descriptors_count(play->playback_handle);
@@ -160,7 +162,9 @@ int playback_play(PCM_Play* play, int16_t* data, int count)
     if (amt == -EPIPE)
     {
         printf("Underrun \n");
-        snd_pcm_prepare (play->playback_handle);
+        snd_pcm_recover (play->playback_handle, amt, 0);
+
+        //snd_pcm_prepare (play->playback_handle);
     }
     else if (amt == -EAGAIN)
     {
@@ -251,7 +255,17 @@ PCM_Capture* capture_open(char* name, unsigned int rate,  int depth)
         return NULL;
     }
 
+//     snd_pcm_uframes_t bufsize = 44100*5;
+// 
+//     if ((err = snd_pcm_hw_params_set_buffer_size_near(capture->capture_handle, hw_params, &bufsize)) < 0)
+//     {
+//         fprintf(stderr, "Can't set recording buffer of %lu bytes\n", bufsize);
+//         return NULL;
+//     }
+
     snd_pcm_hw_params_free (hw_params);
+
+    snd_pcm_nonblock(capture->capture_handle, 1);
 
     return capture;
 }
@@ -274,6 +288,9 @@ void capture_prepare(PCM_Capture* capture)
         return;
     }
 
+    snd_pcm_start(capture->capture_handle);
+    // capture->again = false;
+
     // Setup poll descriptors
     capture->poll_count = snd_pcm_poll_descriptors_count(capture->capture_handle);
     capture->poll_desc  = calloc(capture->poll_count, sizeof(struct pollfd));
@@ -283,6 +300,11 @@ void capture_prepare(PCM_Capture* capture)
 bool capture_ready(PCM_Capture* capture)
 {
     unsigned short revents;
+
+    //     if (capture->again) {
+    //         capture->again = false;
+    //         return true;
+    //     }
 
     // Do not block, set timeout to 0
     poll(capture->poll_desc, capture->poll_count, 0);
@@ -303,15 +325,29 @@ void capture_stop(PCM_Capture* capture)
  */
 int capture_record(PCM_Capture* capture, int16_t* buf, int count)
 {
-    int err;
+    int amt;
 
-    if ((err = snd_pcm_readi (capture->capture_handle, buf, count)) < 0)
+    amt = snd_pcm_readi (capture->capture_handle, buf, count);
+
+    if (amt == -EPIPE)
     {
-        fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (err));
+        printf("Overrun \n");
+        snd_pcm_recover (capture->capture_handle,amt,0);
+        //snd_pcm_prepare(capture->capture_handle);
+    }
+    else if (amt == -EAGAIN)
+    {
+        //capture->again = true;
+        return 0;
+    }
+    else if (amt < 0)
+
+    {
+        fprintf (stderr, "read from audio interface failed (%s)\n", snd_strerror (amt));
         return 0;
     }
 
-    return err;
+    return amt;
 }
 
 Mixer* mixer_open(const char* name)

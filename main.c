@@ -325,17 +325,12 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
 {
     char buf[255];
 
-    capture_prepare(capture);
-
     // open the file
     create_audio_dir();
     construct_path(output_filename, buf, 255);
     file_write_handle = file_out_open(buf, sample_rate);
 
-    printf("Start recording\n");
-    audio_state = RECORDING;
-
-    audio_buf_index1 = 0;
+    // setup UI
 
     GGWidgetSetVisible((GGWidget*)btn_play, false);
     GGWidgetSetVisible((GGWidget*)btn_stop, true);
@@ -346,6 +341,14 @@ static bool on_record_click(GGWidget* widget, SDL_Event* event)
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
     GGImageButtonSetOnClickFunc(btn_stop, on_record_stop);
 
+    // Start recording
+    printf("Start recording\n");
+    audio_state = RECORDING;
+    
+    audio_buf_index1 = 0;
+    
+    capture_prepare(capture);
+    
     return true;
 }
 
@@ -384,7 +387,7 @@ static void handle_recording()
         printf("Record not ready for fetching data\n");
         return;
     }
-
+    printf("Ready\n");
     ensure_audio_buf_size(audio_buf_index1 + FRAME_COUNT);
 
     int actual = capture_record(capture, (void*)&audio_buf1[audio_buf_index1], FRAME_COUNT );
@@ -424,11 +427,6 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
         return true;
     }
 
-    playback_prepare(play);
-
-    printf("Start playback\n");
-    audio_state = PLAYING;
-
     // setup UI
     GGWidgetSetVisible((GGWidget*)btn_play, false);
     GGWidgetSetVisible((GGWidget*)btn_stop, true);
@@ -439,6 +437,13 @@ static bool on_play_click(GGWidget* widget, SDL_Event* event)
 
     GGScreenSetFocusWidget(screen, (GGWidget*)btn_stop);
 
+    // commence playback
+    
+    playback_prepare(play);
+    
+    printf("Start playback\n");
+    audio_state = PLAYING;
+    
     // read first block from file_in_close
     uint32_t actual = file_in_read(file_read_handle, audio_buf1, audio_buf_size);
     audio_buf_count  = actual;

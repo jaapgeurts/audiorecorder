@@ -43,6 +43,7 @@ typedef struct
     snd_pcm_t*     capture_handle;
     struct pollfd* poll_desc;
     int            poll_count;
+   // bool           again;
 } PCM_Capture;
 
 PCM_Play* playback_open(char* name, unsigned int rate, int depth);
